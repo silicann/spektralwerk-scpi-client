@@ -1,0 +1,4 @@
+# build folders
+__pycache__/
+dist/
+build/

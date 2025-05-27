@@ -1,0 +1,79 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "spektralwerk_scpi_client"
+version = "0.1.0"
+description = "Spektralwerk SCPI communication library"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["Spektralwerk", "SCPI"]
+classifiers = ["Programming Language :: Python"]
+dependencies = [
+  "pyVISA>=1.15.0",
+  "pyVISA-py>=0.8.0",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.sdist]
+packages = ["spektralwerk_scpi_client"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["spektralwerk_scpi_client"]
+
+[tool.hatch.envs.default]
+
+[tool.hatch.envs.examples.scripts]
+spw_core_demo = "python3 examples/spektralwerk_core_demo.py"
+
+[tool.hatch.envs.tools.scripts]
+validate_scpi = "python3 tools/scpi_commands_validation.py"
+
+[tool.hatch.envs.style]
+extra-dependencies = [
+  "mypy>=1.11.0",
+  "pytest>=8.3.3",
+]
+
+[tool.hatch.envs.style.scripts]
+typing = ["mypy --install-types --non-interactive {args:spektralwerk_scpi_client tests}"]
+
+[tool.hatch.envs.hatch-test]
+extra-args = ["-vv"]
+
+[tool.ruff.lint.per-file-ignores]
+"examples/*" = [
+  "INP001", # ignore missing __init__.py in examples/ folder
+  "T201",   # ignore print return
+]
+"tests/*" = [
+  "INP001", # ignore missing __init__.py in examples/ folder
+  "S101",   # allow usage of asserts for tests in tests/ folder
+  "ARG001", # allow unused function arguments
+]
+
+[tool.coverage.run]
+source_pkgs = ["spektralwerk_scpi_client", "tests"]
+
+branch = true
+parallel = true
+
+[tool.coverage.paths]
+spektralwerk_scpi_client = [
+  "spektralwerk_scpi_client",
+]
+tests = [
+  "tests",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
