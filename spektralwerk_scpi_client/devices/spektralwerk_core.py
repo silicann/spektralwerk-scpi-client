@@ -51,7 +51,7 @@ class SpektralwerkCore:
         resource.close()
         time.sleep(DEVICE_RECONNECTION_DELAY)
 
-    def _event(self, message: str) -> None:
+    def _command(self, message: str) -> None:
         _logger.debug("Query sent: %s", message)
         try:
             with pyvisa.ResourceManager(VISA_BACKEND).open_resource(
@@ -148,7 +148,7 @@ class SpektralwerkCore:
             exposure time in µs
         """
         message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME.get_command_string(str(exposure_time))
-        self._event(message=message)
+        self._command(message=message)
 
     def get_average_number(self) -> int:
         """
@@ -169,7 +169,7 @@ class SpektralwerkCore:
             number_of_spectra: number of spectra used for the rolling average
         """
         message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER.get_command_string(str(number_of_spectra))
-        self._event(message=message)
+        self._command(message=message)
 
     def get_spectra(self) -> typing.Generator[Spectrum, typing.Any]:
         """
