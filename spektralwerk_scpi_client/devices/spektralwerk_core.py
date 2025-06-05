@@ -150,6 +150,34 @@ class SpektralwerkCore:
         message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME.get_command_string(str(exposure_time))
         self._command(message=message)
 
+    def get_exposure_time_max(self) -> float:
+        """
+        Obtain maximum exposure time value
+
+        Returns:
+            bare maximum exposure time value without unit
+        """
+        message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_MAX.get_query_string()
+        response = self._query(message=message)
+        # TODO: the current firmware response contains the exposure time value and the
+        # current unit. Once the two are separated the cast to float can be done
+        # without splitting the string before.
+        return float(response.split(" ")[0])
+
+    def get_exposure_time_min(self) -> float:
+        """
+        Obtain minimum exposure time value
+
+        Returns:
+            bare minimum exposure time value without unit
+        """
+        message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_MIN.get_query_string()
+        response = self._query(message=message)
+        # TODO: the current firmware response contains the exposure time value and the
+        # current unit. Once the two are separated the cast to float can be done
+        # without splitting the string before.
+        return float(response.split(" ")[0])
+
     def get_average_number(self) -> int:
         """
         Obtain current value for number of averaged spectra
@@ -170,6 +198,80 @@ class SpektralwerkCore:
         """
         message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER.get_command_string(str(number_of_spectra))
         self._command(message=message)
+
+    def get_average_number_max(self) -> int:
+        """
+        Obtain max value for number of averaged spectra
+
+        Returns:
+            maximum value for number of averaged spectra
+        """
+        message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_MAX.get_query_string()
+        response = self._query(message=message)
+        return int(response)
+
+    def get_average_number_min(self) -> int:
+        """
+        Obtain minimum value for number of averaged spectra
+
+        Returns:
+            minimum value for number of averaged spectra
+        """
+        message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_MIN.get_query_string()
+        response = self._query(message=message)
+        return int(response)
+
+    def get_offset_voltage(self) -> float:
+        """
+        Obtain current value for spectrometer pixel offset voltage
+
+        Returns:
+            current value for spectrometer pixel offset voltage
+        """
+        message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE.get_query_string()
+        response = self._query(message=message)
+        # TODO: the current firmware response contains the offset voltage value and the
+        # current unit. Once the two are separated the cast to float can be done
+        # without splitting the string before.
+        return float(response.split(" ")[0])
+
+    def set_offset_voltage(self, offset_voltage: float) -> None:
+        """
+        Set the spectrometer pixel offset voltage
+
+        Args:
+            offset_voltage in mV
+        """
+        message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE.get_command_string(str(offset_voltage))
+        self._command(message=message)
+
+    def get_offset_voltage_max(self) -> float:
+        """
+        Obtain maximum value for spectrometer pixel offset voltage
+
+        Returns:
+            maximum value for spectrometer pixel offset voltage
+        """
+        message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_MAX.get_query_string()
+        response = self._query(message=message)
+        # TODO: the current firmware response contains the offset voltage value and the
+        # current unit. Once the two are separated the cast to float can be done
+        # without splitting the string before.
+        return float(response.split(" ")[0])
+
+    def get_offset_voltage_min(self) -> float:
+        """
+        Obtain minimum value for spectrometer pixel offset voltage
+
+        Returns:
+            minimum value for spectrometer pixel offset voltage
+        """
+        message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_MIN.get_query_string()
+        response = self._query(message=message)
+        # TODO: the current firmware response contains the offset voltage value and the
+        # current unit. Once the two are separated the cast to float can be done
+        # without splitting the string before.
+        return float(response.split(" ")[0])
 
     def get_spectra(self) -> typing.Generator[Spectrum, typing.Any]:
         """
