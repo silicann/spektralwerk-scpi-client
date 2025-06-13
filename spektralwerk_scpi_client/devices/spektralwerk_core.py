@@ -60,7 +60,7 @@ class SpektralwerkCore:
             response, event_status_register = response_with_esr.rsplit(";", 1)
         else:
             response, event_status_register = "", response_with_esr
-        # any value differnt than "0" indicates a SCPI error
+        # any value different than "0" indicates a SCPI error
         # the current error is obtained from the error queue of the device
         if event_status_register != "0":
             error_code, error_message = resource.query(Scpi.SYSTEM_ERROR_NEXT.get_query_string()).split(",")  # type: ignore
@@ -101,6 +101,26 @@ class SpektralwerkCore:
         """
         message = Scpi.IDENTITY.get_query_string()
         return self._request(message=message)
+
+    def get_spectrometer_peak_cont(self) -> int:
+        """
+        Obtain the maximum spectrometer count value
+
+        Returns:
+            Maximum spectrometer count value
+        """
+        message = Scpi.DEVICE_SPECTROMETER_PEAK.get_query_string()
+        return int(self._request(message=message))
+
+    def get_spectrometer_resolution(self) -> float:
+        """
+        Obtain the average resolution of the spectrometer
+
+        Returns:
+            Averaged spectrometer resolution
+        """
+        message = Scpi.DEVICE_SPECTROMETER_RESOLUTION.get_query_string()
+        return float(self._request(message=message))
 
     def get_pixels_count(self) -> int:
         """
