@@ -304,6 +304,20 @@ class SpektralwerkCore:
             timestamp_sec = float(timestamp_msec) / 1_000_000
             yield Spectrum(timestamp_sec, [float(value) for value in spectral_data])
 
+    def get_averaged_spectra(self) -> typing.Generator[Spectrum, typing.Any]:
+        """
+        Obtain avaeraged raw spectra
+
+        Returns:
+            averaged raw spectra
+        """
+        message = Scpi.MEASURE_SPECTRUM_SAMPLE_RAW_AVERAGED.get_query_string()
+        while True:
+            [timestamp_msec, *spectral_data] = (self._request(message=message)).split(",")
+            # The Spektralwerk Core returns the spectral timestamp in µs. The timestamp returned with the spectrum in in s
+            timestamp_sec = float(timestamp_msec) / 1_000_000
+            yield Spectrum(timestamp_sec, [float(value) for value in spectral_data])
+
     def process_request(self, command: str) -> str:
         """
         Send a command to the Spektralwerk
