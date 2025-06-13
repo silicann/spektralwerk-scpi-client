@@ -21,6 +21,8 @@ class SCPICommand(enum.StrEnum):
 
     # SCPI standard/IEEE 488 commands
     IDENTITY = "*IDN?"
+    ESR = "*ESR?"
+    SYSTEM_ERROR_NEXT = "SYSTem:ERRor:NEXT"
 
     # Spektralwerk SCPI commands
     DEVICE_SPECTROMETER_PIXELS_COUNT = "DEVice:SPECtrometer:PIXels:COUNt"

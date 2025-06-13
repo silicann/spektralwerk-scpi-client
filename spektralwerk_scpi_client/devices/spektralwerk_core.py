@@ -8,6 +8,7 @@ import pyvisa
 
 from spektralwerk_scpi_client.exceptions import (
     SpektralwerkConnectionError,
+    SpektralwerkResponseError,
     SpektralwerkTimeoutError,
 )
 from spektralwerk_scpi_client.scpi.commands import SCPICommand as Scpi
@@ -80,7 +81,18 @@ class SpektralwerkCore:
                 write_termination=self.write_termination,
             ) as session:
                 self._init_resource(session)
-                response = session.query(message)  # type: ignore
+                # append query of the event status register
+                message_with_esr = f"{message};{Scpi.ESR}"
+                response_with_esr = session.query(message_with_esr)  # type: ignore
+                try:
+                    response, event_status_register = response_with_esr.rsplit(";", 1)
+                except ValueError:
+                    response, event_status_register = "", response_with_esr
+                # any value differnt than "0" indicates a SCPI error
+                # the current error is obtained from the error queue of the device
+                if event_status_register != "0":
+                    error_code, error_message = session.query(Scpi.SYSTEM_ERROR_NEXT.get_query_string()).split(",")
+                    raise SpektralwerkResponseError(message, error_code, error_message)
                 self._finalize_resource(session)
         except ConnectionRefusedError:
             raise SpektralwerkConnectionError(self._host, self._port) from None
