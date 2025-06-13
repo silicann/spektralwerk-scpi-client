@@ -52,27 +52,23 @@ class SpektralwerkCore:
         resource.close()
         time.sleep(DEVICE_RECONNECTION_DELAY)
 
-    def _command(self, message: str) -> None:
-        _logger.debug("Query sent: %s", message)
-        try:
-            with pyvisa.ResourceManager(VISA_BACKEND).open_resource(
-                self._resource,
-                read_termination=self.read_termination,
-                write_termination=self.write_termination,
-            ) as session:
-                self._init_resource(session)
-                session.write(message)  # type: ignore
-                self._finalize_resource(session)
-        except ConnectionRefusedError:
-            raise SpektralwerkConnectionError(self._host, self._port) from None
-        # pyvista raises unspecific exceptions which contain a status code with the precise error
-        # description
-        except Exception as exc:
-            if str(pyvisa.constants.StatusCode.error_timeout) in str(exc):
-                raise SpektralwerkTimeoutError from None
-            raise
+    def _request_handler(self, resource: pyvisa.Resource, message) -> str:
+        # append query of the event status register
+        message_with_esr = f"{message};{Scpi.ESR}"
+        response_with_esr = resource.query(message_with_esr)  # type: ignore
+        if ";" in response_with_esr:
+            response, event_status_register = response_with_esr.rsplit(";", 1)
+        else:
+            response, event_status_register = "", response_with_esr
+        # any value differnt than "0" indicates a SCPI error
+        # the current error is obtained from the error queue of the device
+        if event_status_register != "0":
+            error_code, error_message = resource.query(Scpi.SYSTEM_ERROR_NEXT.get_query_string()).split(",")  # type: ignore
+            raise SpektralwerkResponseError(message, error_code, error_message)
+        return response
 
-    def _query(self, message: str) -> str:
+
+    def _request(self, message: str) -> str:
         _logger.debug("Query sent: %s", message)
         try:
             with pyvisa.ResourceManager(VISA_BACKEND).open_resource(
@@ -81,18 +77,7 @@ class SpektralwerkCore:
                 write_termination=self.write_termination,
             ) as session:
                 self._init_resource(session)
-                # append query of the event status register
-                message_with_esr = f"{message};{Scpi.ESR}"
-                response_with_esr = session.query(message_with_esr)  # type: ignore
-                try:
-                    response, event_status_register = response_with_esr.rsplit(";", 1)
-                except ValueError:
-                    response, event_status_register = "", response_with_esr
-                # any value differnt than "0" indicates a SCPI error
-                # the current error is obtained from the error queue of the device
-                if event_status_register != "0":
-                    error_code, error_message = session.query(Scpi.SYSTEM_ERROR_NEXT.get_query_string()).split(",")
-                    raise SpektralwerkResponseError(message, error_code, error_message)
+                response = self._request_handler(session, message)
                 self._finalize_resource(session)
         except ConnectionRefusedError:
             raise SpektralwerkConnectionError(self._host, self._port) from None
@@ -115,7 +100,7 @@ class SpektralwerkCore:
             Spektralwerk identity
         """
         message = Scpi.IDENTITY.get_query_string()
-        return self._query(message=message)
+        return self._request(message=message)
 
     def get_pixels_count(self) -> int:
         """
@@ -125,7 +110,7 @@ class SpektralwerkCore:
             pixel count
         """
         message = Scpi.DEVICE_SPECTROMETER_PIXELS_COUNT.get_query_string()
-        return int(self._query(message=message))
+        return int(self._request(message=message))
 
     def get_pixel_wavelengths(self) -> list[float]:
         """
@@ -135,7 +120,7 @@ class SpektralwerkCore:
             array with wavelength value for each pixel
         """
         message = Scpi.DEVICE_SPECTROMETER_PIXELS_WAVELENGTH.get_query_string()
-        wavelengths = (self._query(message=message)).split(",")
+        wavelengths = (self._request(message=message)).split(",")
         return [float(wavelength) for wavelength in wavelengths]
 
     def get_exposure_time(self) -> float:
@@ -146,7 +131,7 @@ class SpektralwerkCore:
             bare exposure time value without unit
         """
         message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME.get_query_string()
-        response = self._query(message=message)
+        response = self._request(message=message)
         # TODO: the current firmware response contains the exposure time value and the
         # current unit. Once the two are separated the cast to float can be done
         # without splitting the string before.
@@ -160,7 +145,7 @@ class SpektralwerkCore:
             exposure time in µs
         """
         message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME.get_command_string(str(exposure_time))
-        self._command(message=message)
+        self._request(message=message)
 
     def get_exposure_time_max(self) -> float:
         """
@@ -170,7 +155,7 @@ class SpektralwerkCore:
             bare maximum exposure time value without unit
         """
         message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_MAX.get_query_string()
-        response = self._query(message=message)
+        response = self._request(message=message)
         # TODO: the current firmware response contains the exposure time value and the
         # current unit. Once the two are separated the cast to float can be done
         # without splitting the string before.
@@ -184,7 +169,7 @@ class SpektralwerkCore:
             bare minimum exposure time value without unit
         """
         message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_MIN.get_query_string()
-        response = self._query(message=message)
+        response = self._request(message=message)
         # TODO: the current firmware response contains the exposure time value and the
         # current unit. Once the two are separated the cast to float can be done
         # without splitting the string before.
@@ -198,7 +183,7 @@ class SpektralwerkCore:
             current value for number of averaged spectra
         """
         message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER.get_query_string()
-        response = self._query(message=message)
+        response = self._request(message=message)
         return int(response)
 
     def set_average_number(self, number_of_spectra: int) -> None:
@@ -209,7 +194,7 @@ class SpektralwerkCore:
             number_of_spectra: number of spectra used for the rolling average
         """
         message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER.get_command_string(str(number_of_spectra))
-        self._command(message=message)
+        self._request(message=message)
 
     def get_average_number_max(self) -> int:
         """
@@ -219,7 +204,7 @@ class SpektralwerkCore:
             maximum value for number of averaged spectra
         """
         message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_MAX.get_query_string()
-        response = self._query(message=message)
+        response = self._request(message=message)
         return int(response)
 
     def get_average_number_min(self) -> int:
@@ -230,7 +215,7 @@ class SpektralwerkCore:
             minimum value for number of averaged spectra
         """
         message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_MIN.get_query_string()
-        response = self._query(message=message)
+        response = self._request(message=message)
         return int(response)
 
     def get_offset_voltage(self) -> float:
@@ -241,7 +226,7 @@ class SpektralwerkCore:
             current value for spectrometer pixel offset voltage
         """
         message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE.get_query_string()
-        response = self._query(message=message)
+        response = self._request(message=message)
         # TODO: the current firmware response contains the offset voltage value and the
         # current unit. Once the two are separated the cast to float can be done
         # without splitting the string before.
@@ -255,7 +240,7 @@ class SpektralwerkCore:
             offset_voltage in mV
         """
         message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE.get_command_string(str(offset_voltage))
-        self._command(message=message)
+        self._request(message=message)
 
     def get_offset_voltage_max(self) -> float:
         """
@@ -265,7 +250,7 @@ class SpektralwerkCore:
             maximum value for spectrometer pixel offset voltage
         """
         message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_MAX.get_query_string()
-        response = self._query(message=message)
+        response = self._request(message=message)
         # TODO: the current firmware response contains the offset voltage value and the
         # current unit. Once the two are separated the cast to float can be done
         # without splitting the string before.
@@ -279,7 +264,7 @@ class SpektralwerkCore:
             minimum value for spectrometer pixel offset voltage
         """
         message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_MIN.get_query_string()
-        response = self._query(message=message)
+        response = self._request(message=message)
         # TODO: the current firmware response contains the offset voltage value and the
         # current unit. Once the two are separated the cast to float can be done
         # without splitting the string before.
@@ -293,7 +278,7 @@ class SpektralwerkCore:
             single spectrum
         """
         message = Scpi.MEASURE_SPECTRUM_SAMPLE_RAW.get_query_string()
-        spectral_data = (self._query(message=message)).split(",")
+        spectral_data = (self._request(message=message)).split(",")
         # the timestamp delivered from the Spektralwerk is in µs and is delivered in seconds
         timestamp_sec = float(spectral_data[0]) / 1_000_000
         yield Spectrum(timestamp_sec, [float(value) for value in spectral_data[1:]])
