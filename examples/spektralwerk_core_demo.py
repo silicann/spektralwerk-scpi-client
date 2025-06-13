@@ -37,7 +37,7 @@ def main(host, port):
     current_average_number = spw_core.get_average_number()
     print(f"current average number: {current_average_number}")
 
-    # retrieve 10 spectra
+    # retrieve 10 single raw spectra
     number_sample_spectra = 10
     spectra = []
     for spectra_count in range(number_sample_spectra):
@@ -45,6 +45,16 @@ def main(host, port):
         print(f"{spectra_count + 1}. spectrum:\n{spectrum}")
         spectra.append(spectrum)
     print(f"received {len(spectra)} spectra")
+
+    # "stream" 100 raw spectra
+    number_of_streamed_spectra = 100
+    counter = 1
+    for spectrum in spw_core.get_spectra():
+        if counter > number_of_streamed_spectra:
+            break
+        print(f"{counter}:\n{spectrum}\n")
+        counter += 1
+
 
 
 if __name__ == "__main__":

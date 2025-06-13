@@ -281,4 +281,5 @@ class SpektralwerkCore:
         spectral_data = (self._request(message=message)).split(",")
         # the timestamp delivered from the Spektralwerk is in µs and is delivered in seconds
         timestamp_sec = float(spectral_data[0]) / 1_000_000
-        yield Spectrum(timestamp_sec, [float(value) for value in spectral_data[1:]])
+        while True:
+            yield Spectrum(timestamp_sec, [float(value) for value in spectral_data[1:]])
