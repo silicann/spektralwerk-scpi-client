@@ -299,10 +299,10 @@ class SpektralwerkCore:
         """
         message = Scpi.MEASURE_SPECTRUM_SAMPLE_RAW.get_query_string()
         while True:
-            spectral_data = (self._request(message=message)).split(",")
+            [timestamp_msec, *spectral_data] = (self._request(message=message)).split(",")
             # the timestamp delivered from the Spektralwerk is in µs and is delivered in seconds
-            timestamp_sec = float(spectral_data[0]) / 1_000_000
-            yield Spectrum(timestamp_sec, [float(value) for value in spectral_data[1:]])
+            timestamp_sec = float(timestamp_msec) / 1_000_000
+            yield Spectrum(timestamp_sec, [float(value) for value in spectral_data])
 
     def process_request(self, command: str) -> str:
         """
