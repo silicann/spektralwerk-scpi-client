@@ -303,3 +303,18 @@ class SpektralwerkCore:
         timestamp_sec = float(spectral_data[0]) / 1_000_000
         while True:
             yield Spectrum(timestamp_sec, [float(value) for value in spectral_data[1:]])
+
+    def process_request(self, command: str) -> str:
+        """
+        Send a command to the Spektralwerk
+
+        A single command several commands, separated by a semicolon (;), are send to the
+        Spektralwerk.
+
+        Args:
+            command: string to be processed to the Spektralwerk
+
+        Returns:
+            raw response of the provided command
+        """
+        return self._request(command)
