@@ -292,16 +292,16 @@ class SpektralwerkCore:
 
     def get_spectra(self) -> typing.Generator[Spectrum, typing.Any]:
         """
-        Obtain a single raw spectrum
+        Obtain raw spectra
 
         Returns:
-            single spectrum
+            raw spectra
         """
         message = Scpi.MEASURE_SPECTRUM_SAMPLE_RAW.get_query_string()
-        spectral_data = (self._request(message=message)).split(",")
-        # the timestamp delivered from the Spektralwerk is in µs and is delivered in seconds
-        timestamp_sec = float(spectral_data[0]) / 1_000_000
         while True:
+            spectral_data = (self._request(message=message)).split(",")
+            # the timestamp delivered from the Spektralwerk is in µs and is delivered in seconds
+            timestamp_sec = float(spectral_data[0]) / 1_000_000
             yield Spectrum(timestamp_sec, [float(value) for value in spectral_data[1:]])
 
     def process_request(self, command: str) -> str:
