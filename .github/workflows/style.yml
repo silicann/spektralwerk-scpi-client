@@ -1,0 +1,23 @@
+name: spektralwerk-scpi-client style and lint test
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  style:
+    runs-on: debian:bookworm-slim
+    steps:
+      - name: Prepare environment
+        run: |
+          apt-get update --yes
+          apt-get install pipx --yes
+          PIPX_BIN_DIR=/usr/local/bin PIPX_HOME=/opt/pipx pipx install hatch
+      - name: Check formatting
+        run: |
+          hatch fmt
+      - name: Check typing with mypy
+        run: |
+          hatch run style:typing
