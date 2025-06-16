@@ -1,0 +1,32 @@
+default:
+  image: debian:bookworm-slim
+
+before_script:
+  - apt-get update --yes
+  - apt-get install pipx --yes
+  - PIPX_BIN_DIR=/usr/local/bin PIPX_HOME=/opt/pipx pipx install hatch
+
+stages:
+  - test
+  - style
+  - build
+
+test:
+  stage: test
+  script:
+    - hatch test
+
+style:typing:
+  stage: style
+  script:
+    - hatch run style:typing
+
+style:fmt:
+  stage: style
+  script:
+    - hatch fmt
+
+build:whl:
+  stage: build
+  script:
+    - hatch build
