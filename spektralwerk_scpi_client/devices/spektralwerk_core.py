@@ -37,6 +37,7 @@ class SpektralwerkCore:
 
     write_termination = "\n"
     read_termination = "\n"
+    command_separator = ";"
 
     def __init__(self, host: str, port: int) -> None:
         self._host = host
@@ -56,8 +57,8 @@ class SpektralwerkCore:
         # append query of the event status register
         message_with_esr = f"{message};{Scpi.ESR_QUERY}"
         response_with_esr = resource.query(message_with_esr)  # type: ignore
-        if ";" in response_with_esr:
-            response, event_status_register = response_with_esr.rsplit(";", 1)
+        if self.command_separator in response_with_esr:
+            response, event_status_register = response_with_esr.rsplit(self.command_separator, 1)
         else:
             response, event_status_register = "", response_with_esr
         # any value different than "0" indicates a SCPI error
