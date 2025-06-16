@@ -8,10 +8,7 @@ import threading
 import pytest
 
 from spektralwerk_scpi_client.devices import SpektralwerkCore
-from spektralwerk_scpi_client.exceptions import (
-    SpektralwerkConnectionError,
-    SpektralwerkTimeoutError,
-)
+from spektralwerk_scpi_client.exceptions import SpektralwerkConnectionError, SpektralwerkTimeoutError
 
 
 class TCPServerMock:
@@ -75,7 +72,7 @@ def test_spektralwerk_core_communication(monkeypatch, mocked_tcp_server):
     def mock_idn(*args, **kwargs):
         return "NON_EXISTING_IDN_COMMAND?"
 
-    monkeypatch.setattr("spektralwerk_scpi_client.scpi.commands.SCPICommand.get_query_string", mock_idn)
+    monkeypatch.setattr("spektralwerk_scpi_client.scpi.commands.SCPICommand", mock_idn)
 
     with pytest.raises(SpektralwerkTimeoutError) as exc_info:
         spw.get_identity()

@@ -52,9 +52,9 @@ class SpektralwerkCore:
         resource.close()
         time.sleep(DEVICE_RECONNECTION_DELAY)
 
-    def _request_handler(self, resource: pyvisa.Resource, message) -> str:
+    def _request_handler(self, resource: pyvisa.Resource, message: str) -> str:
         # append query of the event status register
-        message_with_esr = f"{message};{Scpi.ESR}"
+        message_with_esr = f"{message};{Scpi.ESR_QUERY}"
         response_with_esr = resource.query(message_with_esr)  # type: ignore
         if ";" in response_with_esr:
             response, event_status_register = response_with_esr.rsplit(";", 1)
@@ -63,7 +63,7 @@ class SpektralwerkCore:
         # any value different than "0" indicates a SCPI error
         # the current error is obtained from the error queue of the device
         if event_status_register != "0":
-            error_code, error_message = resource.query(Scpi.SYSTEM_ERROR_NEXT.get_query_string()).split(",")  # type: ignore
+            error_code, error_message = resource.query(Scpi.SYSTEM_ERROR_NEXT_QUERY).split(",")  # type: ignore
             raise SpektralwerkResponseError(message, error_code, error_message)
         return response
 
@@ -99,7 +99,7 @@ class SpektralwerkCore:
         Returns:
             Spektralwerk identity
         """
-        message = Scpi.IDENTITY.get_query_string()
+        message = Scpi.IDN_QUERY
         return self._request(message=message)
 
     def get_spectrometer_peak_cont(self) -> int:
@@ -109,7 +109,7 @@ class SpektralwerkCore:
         Returns:
             Maximum spectrometer count value
         """
-        message = Scpi.DEVICE_SPECTROMETER_PEAK.get_query_string()
+        message = Scpi.DEVICE_SPECTROMETER_PEAK_QUERY
         return int(self._request(message=message))
 
     def get_spectrometer_resolution(self) -> float:
@@ -119,7 +119,7 @@ class SpektralwerkCore:
         Returns:
             Averaged spectrometer resolution
         """
-        message = Scpi.DEVICE_SPECTROMETER_RESOLUTION.get_query_string()
+        message = Scpi.DEVICE_SPECTROMETER_RESOLUTION_QUERY
         return float(self._request(message=message))
 
     def get_pixels_count(self) -> int:
@@ -129,7 +129,7 @@ class SpektralwerkCore:
         Returns:
             pixel count
         """
-        message = Scpi.DEVICE_SPECTROMETER_PIXELS_COUNT.get_query_string()
+        message = Scpi.DEVICE_SPECTROMETER_PIXELS_COUNT_QUERY
         return int(self._request(message=message))
 
     def get_pixel_wavelengths(self) -> list[float]:
@@ -139,7 +139,7 @@ class SpektralwerkCore:
         Returns:
             array with wavelength value for each pixel
         """
-        message = Scpi.DEVICE_SPECTROMETER_PIXELS_WAVELENGTH.get_query_string()
+        message = Scpi.DEVICE_SPECTROMETER_PIXELS_WAVELENGTH_QUERY
         wavelengths = (self._request(message=message)).split(",")
         return [float(wavelength) for wavelength in wavelengths]
 
@@ -150,7 +150,7 @@ class SpektralwerkCore:
         Returns:
             bare exposure time value without unit
         """
-        message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME.get_query_string()
+        message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_QUERY
         response = self._request(message=message)
         # TODO: the current firmware response contains the exposure time value and the
         # current unit. Once the two are separated the cast to float can be done
@@ -164,7 +164,7 @@ class SpektralwerkCore:
         Args:
             exposure time in µs
         """
-        message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME.get_command_string(str(exposure_time))
+        message = f"{Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_COMMAND} {exposure_time}"
         self._request(message=message)
 
     def get_exposure_time_max(self) -> float:
@@ -174,7 +174,7 @@ class SpektralwerkCore:
         Returns:
             bare maximum exposure time value without unit
         """
-        message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_MAX.get_query_string()
+        message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_MAX_QUERY
         response = self._request(message=message)
         # TODO: the current firmware response contains the exposure time value and the
         # current unit. Once the two are separated the cast to float can be done
@@ -188,7 +188,7 @@ class SpektralwerkCore:
         Returns:
             bare minimum exposure time value without unit
         """
-        message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_MIN.get_query_string()
+        message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_MIN_QUERY
         response = self._request(message=message)
         # TODO: the current firmware response contains the exposure time value and the
         # current unit. Once the two are separated the cast to float can be done
@@ -202,7 +202,7 @@ class SpektralwerkCore:
         Returns:
             current value for number of averaged spectra
         """
-        message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER.get_query_string()
+        message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_QUERY
         response = self._request(message=message)
         return int(response)
 
@@ -213,7 +213,7 @@ class SpektralwerkCore:
         Args:
             number_of_spectra: number of spectra used for the rolling average
         """
-        message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER.get_command_string(str(number_of_spectra))
+        message = f"{Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_COMMAND} {number_of_spectra}"
         self._request(message=message)
 
     def get_average_number_max(self) -> int:
@@ -223,7 +223,7 @@ class SpektralwerkCore:
         Returns:
             maximum value for number of averaged spectra
         """
-        message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_MAX.get_query_string()
+        message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_MAX_QUERY
         response = self._request(message=message)
         return int(response)
 
@@ -234,7 +234,7 @@ class SpektralwerkCore:
         Returns:
             minimum value for number of averaged spectra
         """
-        message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_MIN.get_query_string()
+        message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_MIN_QUERY
         response = self._request(message=message)
         return int(response)
 
@@ -245,7 +245,7 @@ class SpektralwerkCore:
         Returns:
             current value for spectrometer pixel offset voltage
         """
-        message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE.get_query_string()
+        message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_QUERY
         response = self._request(message=message)
         # TODO: the current firmware response contains the offset voltage value and the
         # current unit. Once the two are separated the cast to float can be done
@@ -259,7 +259,7 @@ class SpektralwerkCore:
         Args:
             offset_voltage in mV
         """
-        message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE.get_command_string(str(offset_voltage))
+        message = f"{Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_COMMAND} {offset_voltage}"
         self._request(message=message)
 
     def get_offset_voltage_max(self) -> float:
@@ -269,7 +269,7 @@ class SpektralwerkCore:
         Returns:
             maximum value for spectrometer pixel offset voltage
         """
-        message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_MAX.get_query_string()
+        message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_MAX_QUERY
         response = self._request(message=message)
         # TODO: the current firmware response contains the offset voltage value and the
         # current unit. Once the two are separated the cast to float can be done
@@ -283,7 +283,7 @@ class SpektralwerkCore:
         Returns:
             minimum value for spectrometer pixel offset voltage
         """
-        message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_MIN.get_query_string()
+        message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_MIN_QUERY
         response = self._request(message=message)
         # TODO: the current firmware response contains the offset voltage value and the
         # current unit. Once the two are separated the cast to float can be done
@@ -297,7 +297,7 @@ class SpektralwerkCore:
         Returns:
             raw spectra
         """
-        message = Scpi.MEASURE_SPECTRUM_SAMPLE_RAW.get_query_string()
+        message = Scpi.MEASURE_SPECTRUM_SAMPLE_RAW_QUERY
         while True:
             [timestamp_msec, *spectral_data] = (self._request(message=message)).split(",")
             # the timestamp delivered from the Spektralwerk is in µs and is delivered in seconds
@@ -311,7 +311,7 @@ class SpektralwerkCore:
         Returns:
             averaged raw spectra
         """
-        message = Scpi.MEASURE_SPECTRUM_SAMPLE_RAW_AVERAGED.get_query_string()
+        message = Scpi.MEASURE_SPECTRUM_SAMPLE_RAW_AVERAGED_QUERY
         while True:
             [timestamp_msec, *spectral_data] = (self._request(message=message)).split(",")
             # The Spektralwerk Core returns the spectral timestamp in µs. The timestamp returned with the spectrum in in s
