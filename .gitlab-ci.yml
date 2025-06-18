@@ -26,6 +26,12 @@ style:fmt:
   script:
     - hatch fmt
 
+style:codespell:
+  stage: style
+  script:
+    - apt-get install codespell --yes
+    - codespell .
+
 build:whl:
   stage: build
   script:
