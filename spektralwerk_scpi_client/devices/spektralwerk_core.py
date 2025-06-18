@@ -58,16 +58,19 @@ class SpektralwerkCore:
         message_with_esr = f"{message};{Scpi.ESR_QUERY}"
         response_with_esr = resource.query(message_with_esr)  # type: ignore
         if self.command_separator in response_with_esr:
-            response, event_status_register = response_with_esr.rsplit(self.command_separator, 1)
+            response, event_status_register = response_with_esr.rsplit(
+                self.command_separator, 1
+            )
         else:
             response, event_status_register = "", response_with_esr
         # any value different than "0" indicates a SCPI error
         # the current error is obtained from the error queue of the device
         if event_status_register != "0":
-            error_code, error_message = resource.query(Scpi.SYSTEM_ERROR_NEXT_QUERY).split(",")  # type: ignore
+            error_code, error_message = resource.query(
+                Scpi.SYSTEM_ERROR_NEXT_QUERY
+            ).split(",")  # type: ignore
             raise SpektralwerkResponseError(message, error_code, error_message)
         return response
-
 
     def _request(self, message: str) -> str:
         _logger.debug("Query sent: %s", message)
@@ -260,7 +263,9 @@ class SpektralwerkCore:
         Args:
             offset_voltage in mV
         """
-        message = f"{Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_COMMAND} {offset_voltage}"
+        message = (
+            f"{Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_COMMAND} {offset_voltage}"
+        )
         self._request(message=message)
 
     def get_offset_voltage_max(self) -> float:
@@ -300,7 +305,9 @@ class SpektralwerkCore:
         """
         message = Scpi.MEASURE_SPECTRUM_SAMPLE_RAW_QUERY
         while True:
-            [timestamp_msec, *spectral_data] = (self._request(message=message)).split(",")
+            [timestamp_msec, *spectral_data] = (self._request(message=message)).split(
+                ","
+            )
             # the timestamp delivered from the Spektralwerk is in µs and is delivered in seconds
             timestamp_sec = float(timestamp_msec) / 1_000_000
             yield Spectrum(timestamp_sec, [float(value) for value in spectral_data])
@@ -314,7 +321,9 @@ class SpektralwerkCore:
         """
         message = Scpi.MEASURE_SPECTRUM_SAMPLE_RAW_AVERAGED_QUERY
         while True:
-            [timestamp_msec, *spectral_data] = (self._request(message=message)).split(",")
+            [timestamp_msec, *spectral_data] = (self._request(message=message)).split(
+                ","
+            )
             # The Spektralwerk Core returns the spectral timestamp in µs. The timestamp returned with the spectrum in in s
             timestamp_sec = float(timestamp_msec) / 1_000_000
             yield Spectrum(timestamp_sec, [float(value) for value in spectral_data])

@@ -8,7 +8,10 @@ import threading
 import pytest
 
 from spektralwerk_scpi_client.devices import SpektralwerkCore
-from spektralwerk_scpi_client.exceptions import SpektralwerkConnectionError, SpektralwerkTimeoutError
+from spektralwerk_scpi_client.exceptions import (
+    SpektralwerkConnectionError,
+    SpektralwerkTimeoutError,
+)
 
 
 class TCPServerMock:
