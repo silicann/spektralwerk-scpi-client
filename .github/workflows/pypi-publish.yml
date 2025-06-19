@@ -20,8 +20,8 @@ jobs:
 
       - name: Build release distributions
         run: |
-          apt-get update --yes
-          apt-get install pipx --yes
+          sudo apt-get update --yes
+          sudo apt-get install pipx --yes
           PIPX_BIN_DIR=/usr/local/bin PIPX_HOME=/opt/pipx pipx install hatch
           hatch build
 
