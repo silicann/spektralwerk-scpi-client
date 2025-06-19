@@ -66,9 +66,9 @@ class SpektralwerkCore:
         # any value different than "0" indicates a SCPI error
         # the current error is obtained from the error queue of the device
         if event_status_register != "0":
-            error_code, error_message = resource.query(
+            error_code, error_message = resource.query(  # type: ignore
                 Scpi.SYSTEM_ERROR_NEXT_QUERY
-            ).split(",")  # type: ignore
+            ).split(",")
             raise SpektralwerkResponseError(message, error_code, error_message)
         return response
 
