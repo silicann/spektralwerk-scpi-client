@@ -1,5 +1,7 @@
 # spektralwerk_scpi_client
 
+[![spektralwerk-scpi-client style and lint test](https://github.com/silicann/spektralwerk-scpi-client/actions/workflows/style.yml/badge.svg)](https://github.com/silicann/spektralwerk-scpi-client/actions/workflows/style.yml)
+
 `spektralwerk_scpi_client` is a [Python](https://python.org/) library for communicating with [Spektralwerk](https://www.silicann.com/spektrometer/) devices via their [SCPI interface](https://en.wikipedia.org/wiki/Standard_Commands_for_Programmable_Instruments).
 
 The library supports all available configuration settings as well as the retrieval of spectral data.
