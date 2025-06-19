@@ -249,7 +249,7 @@ class SpektralwerkCore:
         Returns:
             current value for spectrometer pixel offset voltage
         """
-        message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_QUERY
+        message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_QUERY
         response = self._request(message=message)
         # TODO: the current firmware response contains the offset voltage value and the
         # current unit. Once the two are separated the cast to float can be done
@@ -263,9 +263,7 @@ class SpektralwerkCore:
         Args:
             offset_voltage in mV
         """
-        message = (
-            f"{Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_COMMAND} {offset_voltage}"
-        )
+        message = f"{Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_COMMAND} {offset_voltage}"
         self._request(message=message)
 
     def get_offset_voltage_max(self) -> float:
@@ -275,7 +273,7 @@ class SpektralwerkCore:
         Returns:
             maximum value for spectrometer pixel offset voltage
         """
-        message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_MAX_QUERY
+        message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MAX_QUERY
         response = self._request(message=message)
         # TODO: the current firmware response contains the offset voltage value and the
         # current unit. Once the two are separated the cast to float can be done
@@ -289,7 +287,7 @@ class SpektralwerkCore:
         Returns:
             minimum value for spectrometer pixel offset voltage
         """
-        message = Scpi.DEVICE_SPECTROMETER_PIXELS_OFFSET_VOLTAGE_MIN_QUERY
+        message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MIN_QUERY
         response = self._request(message=message)
         # TODO: the current firmware response contains the offset voltage value and the
         # current unit. Once the two are separated the cast to float can be done
