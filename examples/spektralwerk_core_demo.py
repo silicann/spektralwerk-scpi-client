@@ -5,13 +5,13 @@ Create a SpektralwerkCore object and request the identity and change basic setti
 This example aims to provide basic usage of the `spektralwerk_scpi_client` library.
 
 The environmental variables `SPW_HOST` and `SPW_PORT` can be used to specify host and port.
-The default IP is `127.0.0.1` (localhost) and the default port is `5000`.
+The default IP is `127.0.0.1` (localhost) and the default port is `5025`.
 """
 
 from spektralwerk_scpi_client.devices import SpektralwerkCore
 
 DEFAULT_HOST: str = "127.0.0.1"
-DEFAULT_PORT: str = "5000"
+DEFAULT_PORT: str = "5025"
 
 
 def main(host, port):

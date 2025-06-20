@@ -54,7 +54,7 @@ def test_specktralwerk_core_connection(monkeypatch):
     Provide a wrong/non-existing host and/or port should raise a ConnectionRefusedError which will
     raise a SpektralwerkConnectionError
     """
-    spw = SpektralwerkCore(host="127.0.0.1", port=5678)
+    spw = SpektralwerkCore(host="127.0.0.1", port=56789)
 
     def mock_busy_resource(*args, **kwargs):
         raise ConnectionRefusedError
@@ -70,7 +70,7 @@ def test_spektralwerk_core_communication(monkeypatch, mocked_tcp_server):
     """
     Provide non-existing/invalid scpi query command leads to
     """
-    spw = SpektralwerkCore(host="127.0.0.1", port=5678)
+    spw = SpektralwerkCore(host="127.0.0.1", port=56789)
 
     def mock_idn(*args, **kwargs):
         return "NON_EXISTING_IDN_COMMAND?"
