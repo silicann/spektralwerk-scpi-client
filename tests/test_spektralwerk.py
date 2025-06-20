@@ -24,7 +24,7 @@ class TCPServerMock:
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     def __enter__(self):
-        self._socket.bind(("127.0.0.1", 5678))
+        self._socket.bind(("127.0.0.1", 56789))
         return self
 
     def __exit__(self, *args, **kwargs):
