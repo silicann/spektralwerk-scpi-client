@@ -58,7 +58,7 @@ class SpektralwerkCore:
     def _request_handler(self, resource: pyvisa.Resource, message: str) -> str:
         # append query of the event status register
         message_with_esr = f"{message};{Scpi.ESR_QUERY}"
-        response_with_esr = resource.query(message_with_esr)  # type: ignore
+        response_with_esr = resource.query(message_with_esr).rstrip("\r")  # type: ignore
         if self.command_separator in response_with_esr:
             response, event_status_register = response_with_esr.rsplit(
                 self.command_separator, 1
