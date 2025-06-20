@@ -1,4 +1,4 @@
-name: spektralwerk-scpi-client style and lint test
+name: Style Check
 
 on:
   push:
