@@ -1,4 +1,4 @@
-name: Upload Python Package
+name: Upload to PyPI
 
 on:
   release:
@@ -40,9 +40,7 @@ jobs:
       # IMPORTANT: this permission is mandatory for trusted publishing
       id-token: write
 
-    environment:
-      name: pypi
-      url: https://pypi.org/p/spektralwerk-scpi-client
+    environment: pypi
 
     steps:
       - name: Retrieve release distributions
