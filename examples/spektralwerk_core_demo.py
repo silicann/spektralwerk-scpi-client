@@ -55,6 +55,12 @@ def main(host, port):
         print(f"{counter}:\n{spectrum}\n")
         counter += 1
 
+    # change timeout for a single command
+    spw_core.set_exposure_time(10000.0)
+    spw_core.set_average_number(10000)
+    print("Stay calm, this might take some seconds.")
+    print(f"{next(spw_core.get_averaged_spectra(timeout=25000))}")
+
 
 if __name__ == "__main__":
     import os
