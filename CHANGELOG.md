@@ -2,6 +2,13 @@
 
 All notable changes of the `spektralwerk_scpi_client` will be documented in this file
 
+## [0.2.1] - 2025-06-20
+
+### Added
+
+- Individual timeout for each function can be set
+
+
 ## [0.2.0] - 2025-06-19
 
 ### Added
