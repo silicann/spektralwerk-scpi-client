@@ -2,6 +2,14 @@
 
 All notable changes of the `spektralwerk_scpi_client` will be documented in this file
 
+
+## [0.2.2] - 2025-06-24
+
+### Changed
+
+- Wavelength SCPI endpoint naming
+
+
 ## [0.2.1] - 2025-06-20
 
 ### Added
