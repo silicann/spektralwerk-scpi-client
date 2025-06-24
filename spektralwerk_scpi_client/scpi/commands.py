@@ -23,7 +23,7 @@ class SCPICommand(enum.StrEnum):
     DEVICE_SPECTROMETER_PEAK_QUERY = "DEVice:SPECtrometer:PEAK?"
     DEVICE_SPECTROMETER_PIXELS_COUNT_QUERY = "DEVice:SPECtrometer:PIXels:COUNt?"
     DEVICE_SPECTROMETER_PIXELS_WAVELENGTH_QUERY = (
-        "DEVice:SPECtrometer:PIXels:WAVelength?"
+        "DEVice:SPECtrometer:PIXels:WAVelengths?"
     )
     DEVICE_SPECTROMETER_RESOLUTION_QUERY = "DEVice:SPECtrometer:RESolution?"
     MEASURE_SPECTRUM_AVERAGE_NUMBER_COMMAND = "MEASure:SPECtrum:AVERage:NUMBer"
