@@ -164,7 +164,7 @@ class SpektralwerkCore:
         Returns:
             array with wavelength value for each pixel
         """
-        message = Scpi.DEVICE_SPECTROMETER_PIXELS_WAVELENGTH_QUERY
+        message = Scpi.DEVICE_SPECTROMETER_PIXELS_WAVELENGTHS_QUERY
         wavelengths = (self._request(message=message, timeout=timeout)).split(",")
         return [float(wavelength) for wavelength in wavelengths]
 
