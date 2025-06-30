@@ -196,6 +196,20 @@ class SpektralwerkCore:
         message = f"{Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_COMMAND} {exposure_time}"
         self._request(message=message, timeout=timeout)
 
+    def get_exposure_time_unit(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> str:
+        """
+        Get the unit of the exposure time
+
+        Args:
+            timeout: timeout [ms] for exposure time unit request. Default: REQUEST_TIMEOUT_IN_MS
+
+        Returns:
+            unit of the exposure time
+        """
+        message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_UNIT_QUERY
+        response = self._request(message=message, timeout=timeout)
+        return response
+
     def get_exposure_time_max(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> float:
         """
         Obtain maximum exposure time value
@@ -316,6 +330,20 @@ class SpektralwerkCore:
         """
         message = f"{Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_COMMAND} {offset_voltage}"
         self._request(message=message, timeout=timeout)
+
+    def get_offset_voltag_unit(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> str:
+        """
+        Get the unit of the offset voltage
+
+        Args:
+            timeout: timeout [ms] for exposure time unit request. Default: REQUEST_TIMEOUT_IN_MS
+
+        Returns:
+            unit of the offset voltage
+        """
+        message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_UNIT_QUERY
+        response = self._request(message=message, timeout=timeout)
+        return response
 
     def get_offset_voltage_max(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> float:
         """
