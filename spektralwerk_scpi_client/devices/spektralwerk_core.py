@@ -176,14 +176,11 @@ class SpektralwerkCore:
             timeout: timeout [ms] for spectrometer resolution request. Default: REQUEST_TIMEOUT_IN_MS
 
         Returns:
-            bare exposure time value without unit
+            exposure time value
         """
         message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_QUERY
         response = self._request(message=message, timeout=timeout)
-        # TODO: the current firmware response contains the exposure time value and the
-        # current unit. Once the two are separated the cast to float can be done
-        # without splitting the string before.
-        return float(response.split(" ")[0])
+        return float(response)
 
     def set_exposure_time(
         self, exposure_time: float, timeout: int = REQUEST_TIMEOUT_IN_MS

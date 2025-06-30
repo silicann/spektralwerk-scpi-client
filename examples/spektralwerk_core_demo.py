@@ -26,7 +26,7 @@ def main(host, port):
     print(f"wavelength range: {wavelengths[0]} - {wavelengths[-1]}")
 
     # set and get the exposure time
-    target_exposure_time = 100.0
+    target_exposure_time = 0.100
     spw_core.set_exposure_time(target_exposure_time)
     current_exposure_time = spw_core.get_exposure_time()
     print(f"current exposure time: {current_exposure_time}")
@@ -47,7 +47,7 @@ def main(host, port):
     print(f"received {len(spectra)} spectra")
 
     # "stream" 100 raw spectra
-    number_of_streamed_spectra = 100
+    number_of_streamed_spectra = 10
     counter = 1
     for spectrum in spw_core.get_spectra():
         if counter > number_of_streamed_spectra:
@@ -56,8 +56,8 @@ def main(host, port):
         counter += 1
 
     # change timeout for a single command
-    spw_core.set_exposure_time(10000.0)
-    spw_core.set_average_number(10000)
+    spw_core.set_exposure_time(1.0)
+    spw_core.set_average_number(20)
     print("Stay calm, this might take some seconds.")
     print(f"{next(spw_core.get_averaged_spectra(timeout=25000))}")
 
