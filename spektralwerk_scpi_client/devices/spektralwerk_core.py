@@ -207,8 +207,7 @@ class SpektralwerkCore:
             unit of the exposure time
         """
         message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_UNIT_QUERY
-        response = self._request(message=message, timeout=timeout)
-        return response
+        return self._request(message=message, timeout=timeout)
 
     def get_exposure_time_max(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> float:
         """
@@ -342,8 +341,7 @@ class SpektralwerkCore:
             unit of the offset voltage
         """
         message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_UNIT_QUERY
-        response = self._request(message=message, timeout=timeout)
-        return response
+        return self._request(message=message, timeout=timeout)
 
     def get_offset_voltage_max(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> float:
         """
