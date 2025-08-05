@@ -121,7 +121,7 @@ class SpektralwerkCore:
         Returns:
             Maximum spectrometer count value
         """
-        message = Scpi.DEVICE_SPECTROMETER_PEAK_QUERY
+        message = Scpi.DEVICE_SPECTROMETER_ARRAY_PEAK_QUERY
         return int(self._request(message=message, timeout=timeout))
 
     def get_spectrometer_resolution(
@@ -149,7 +149,7 @@ class SpektralwerkCore:
         Returns:
             pixel count
         """
-        message = Scpi.DEVICE_SPECTROMETER_PIXELS_COUNT_QUERY
+        message = Scpi.DEVICE_SPECTROMETER_ARRAY_PCOUNT_QUERY
         return int(self._request(message=message, timeout=timeout))
 
     def get_pixel_wavelengths(
