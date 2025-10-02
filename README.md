@@ -3,9 +3,14 @@
 [![style and lint](https://github.com/silicann/spektralwerk-scpi-client/actions/workflows/style.yml/badge.svg)](https://github.com/silicann/spektralwerk-scpi-client/actions/workflows/style.yml)
 [![Upload to PyPI](https://github.com/silicann/spektralwerk-scpi-client/actions/workflows/pypi-publish.yml/badge.svg)](https://github.com/silicann/spektralwerk-scpi-client/actions/workflows/pypi-publish.yml)
 
-`spektralwerk_scpi_client` is a [Python](https://python.org/) library for communicating with [Spektralwerk](https://www.silicann.com/spektrometer/) devices via their [SCPI interface](https://en.wikipedia.org/wiki/Standard_Commands_for_Programmable_Instruments).
+`spektralwerk_scpi_client` is a [Python](https://python.org/) library for communicating with [Spektralwerk NIR spectrometers](https://www.en.silicann.com/spectrometers/spektralwerk-core-nir-spectrometer/) via their [SCPI interface](https://en.wikipedia.org/wiki/Standard_Commands_for_Programmable_Instruments).
 
 The library supports all available configuration settings as well as the retrieval of spectral data.
+
+The API supports two ways of obtaining spectra:
+
+- single spectrum mode: returns a single spectrum upon request. Intended for use cases like exploratory spectroscopy in the lab or requests triggered by the trigger in interface
+- streaming streaming mode: returns a continuous stream of spectral information. Intended for process analytics, in-line spectrometry in production and other situations demanding very high sample rates.
 
 ## Supported Devices
 
