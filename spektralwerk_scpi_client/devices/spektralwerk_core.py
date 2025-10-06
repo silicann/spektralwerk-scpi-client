@@ -111,7 +111,7 @@ class SpektralwerkCore:
         message = Scpi.IDN_QUERY
         return self._request(message=message, timeout=timeout)
 
-    def get_spectrometer_peak_cont(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> int:
+    def get_spectrometer_peak_count(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> int:
         """
         Obtain the maximum spectrometer count value
 
@@ -490,7 +490,7 @@ class SpektralwerkCore:
         self, timeout: int = REQUEST_TIMEOUT_IN_MS
     ) -> typing.Generator[Spectrum, typing.Any]:
         """
-        Obtain avaeraged raw spectra
+        Obtain averaged raw spectra
 
         Args:
             timeout: timeout [ms] for averaged spectra request. Default: REQUEST_TIMEOUT_IN_MS
