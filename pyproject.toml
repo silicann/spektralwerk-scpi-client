@@ -46,6 +46,10 @@ typing = ["mypy --install-types --non-interactive {args:spektralwerk_scpi_client
 [tool.hatch.envs.hatch-test]
 extra-args = ["-vv"]
 
+[tool.ruff]
+line-length = 88
+indent-width = 4
+
 [tool.ruff.lint.per-file-ignores]
 "examples/*" = [
   "INP001", # ignore missing __init__.py in examples/ folder

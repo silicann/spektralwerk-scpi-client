@@ -12,6 +12,7 @@ from spektralwerk_scpi_client.exceptions import (
     SpektralwerkTimeoutError,
 )
 from spektralwerk_scpi_client.scpi.commands import SCPICommand as Scpi
+from spektralwerk_scpi_client.scpi.mnemonics import ProcessingStep
 
 _logger = logging.getLogger()
 
@@ -477,7 +478,7 @@ class SpektralwerkCore:
         Returns:
             raw spectra
         """
-        message = Scpi.MEASURE_SPECTRUM_SAMPLE_RAW_QUERY
+        message = Scpi.MEASURE_SPECTRUM_REQUEST_RAW_QUERY
         while True:
             [timestamp_msec, *spectral_data] = (
                 self._request(message=message, timeout=timeout)
@@ -486,24 +487,50 @@ class SpektralwerkCore:
             timestamp_sec = float(timestamp_msec) / 1_000_000
             yield Spectrum(timestamp_sec, [float(value) for value in spectral_data])
 
+    def set_processing(
+        self,
+        processing_steps: list[ProcessingStep] | None,
+        timeout: int = REQUEST_TIMEOUT_IN_MS,
+    ) -> None:
+        """
+        Set processing steps for requesting spectral sample
+
+        Args:
+            processing_steps: list of processing steps. If `None` is passed, the currently valid
+                processing steps will be removed.
+            timeout: timeout [ms] for setting processing steps. Default:REQUEST_TIMEOUT_IN_MS
+        """
+        message = f"{Scpi.MEASURE_SPECTRUM_REQUEST_CONFIG_PROCESSING_COMMAND}"
+
+        if processing_steps:
+            message = f"{message} {','.join([step.value for step in processing_steps])}"
+        self._request(message=message, timeout=timeout)
+
     def get_averaged_spectra(
         self, timeout: int = REQUEST_TIMEOUT_IN_MS
     ) -> typing.Generator[Spectrum, typing.Any]:
         """
-        Obtain averaged raw spectra
+        Obtain averaged spectra
+
+        The number of spectra used for the averaged spectrum can be adjusted with
+        `MEASure:SPECtrum:AVERage:NUMBer`.
 
         Args:
             timeout: timeout [ms] for averaged spectra request. Default: REQUEST_TIMEOUT_IN_MS
 
         Returns:
-            averaged raw spectra
+            averaged spectra
         """
-        message = Scpi.MEASURE_SPECTRUM_SAMPLE_RAW_AVERAGED_QUERY
+
+        # adjust processing steps to obtain averaged spectra
+        self.set_processing([ProcessingStep.AVERAGE], timeout=timeout)
+
+        message = Scpi.MEASURE_SPECTRUM_REQUEST_QUERY
         while True:
             [timestamp_msec, *spectral_data] = (
                 self._request(message=message, timeout=timeout)
             ).split(",")
-            # The Spektralwerk Core returns the spectral timestamp in µs. The timestamp returned with the spectrum in in s
+            # the timestamp delivered from the Spektralwerk is in µs and is delivered in seconds
             timestamp_sec = float(timestamp_msec) / 1_000_000
             yield Spectrum(timestamp_sec, [float(value) for value in spectral_data])
 

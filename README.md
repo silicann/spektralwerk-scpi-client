@@ -18,6 +18,7 @@ The API supports two ways of obtaining spectra:
   - set/get exposure time
   - set/get average number
   - set/get offset voltage
+  - set/get light and dark reference spectrum
   - get pixel count and wavelengths array of the spectrometer
   - get single raw spectrum and averaged raw spectrum
 
