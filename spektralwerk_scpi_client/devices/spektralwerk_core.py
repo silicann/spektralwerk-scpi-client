@@ -362,6 +362,109 @@ class SpektralwerkCore:
         response = self._request(message=message, timeout=timeout)
         return float(response)
 
+    def get_dark_refernce(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> list[float]:
+        """
+        Obtain current stored dark reference spectrum
+
+        Args:
+            timeout: timeout [ms] for dark reference spectrum request. Default: REQUEST_TIMEOUT_IN_MS
+
+        Returns:
+            current dark reference spectrum
+        """
+        message = Scpi.MEASURE_SPECTRUM_REFERENCE_DARK_QUERY
+        dark_reference = self._request(message=message, timeout=timeout).split(",")
+        return [float(value) for value in dark_reference]
+
+    def acquire_dark_reference(
+        self, average_number=int | None, timeout: int = REQUEST_TIMEOUT_IN_MS
+    ) -> None:
+        """
+        Acquire a dark reference spectrum
+
+        A dark reference spectrum is obtained from spectral samples averaged by the Spektralwerk
+        device itself.
+
+        Args:
+            average_number: number of spectra used for the averaging of the dark reference
+                spectrum. If no value is provided, the currently set value of
+                `MEASure:SPECtrum:AVERage:NUMBer` is used. Default: None
+            timeout: timeout [ms] for acquiring dark reference spectrum. Default: REQUEST_TIMEOUT_IN_MS
+        """
+        message = f"{Scpi.MEASURE_SPECTRUM_REFERENCE_DARK_ACQUIRE_COMMAND}"
+        if average_number:
+            message = f"{message} {average_number}"
+        self._request(message=message, timeout=timeout)
+
+    def set_dark_reference(
+        self, reference_spectrum=list[float], timeout: int = REQUEST_TIMEOUT_IN_MS
+    ) -> None:
+        """
+        Set a dark reference spectrum
+
+        The dark reference spectrum is set by a provided reference spectrum.
+
+        Args:
+            reference_spectrum: list of spectral intensities which is used as a dark reference
+                spectrum.
+            timeout: timeout [ms] for setting dark reference spectrum. Default: REQUEST_TIMEOUT_IN_MS
+        """
+        message = (
+            f"{Scpi.MEASURE_SPECTRUM_REFERENCE_DARK_SET_COMMAND} {reference_spectrum}"
+        )
+        self._request(message=message, timeout=timeout)
+
+    def get_light_reference(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> list[float]:
+        """
+        Obtain current stored light reference spectrum
+
+        Args:
+            timeout: timeout [ms] for light reference spectrum request. Default: REQUEST_TIMEOUT_IN_MS
+
+        Returns:
+            current light reference spectrum
+        """
+        message = Scpi.MEASURE_SPECTRUM_REFERENCE_LIGHT_QUERY
+        light_refernce = self._request(message=message, timeout=timeout).split(",")
+        return [float(value) for value in light_refernce]
+
+    def acquire_light_reference(
+        self, average_number: int | None = None, timeout: int = REQUEST_TIMEOUT_IN_MS
+    ) -> None:
+        """
+        Acquire a light reference spectrum
+
+        A light reference spectrum is obtained from spectral samples averaged by the Spektralwerk
+        device itself.
+
+        Args:
+            average_number: number of spectra used for the averaging of the light reference
+                spectrum. If no value is provided, the currently set value of
+                `MEASure:SPECtrum:AVERage:NUMBer` is used. Default: None
+            timeout: timeout [ms] for acquiring light reference spectrum. Default: REQUEST_TIMEOUT_IN_MS
+        """
+        message = f"{Scpi.MEASURE_SPECTRUM_REFERENCE_LIGHT_ACQUIRE_COMMAND}"
+        if average_number:
+            message = f"{message} {average_number}"
+        self._request(message=message, timeout=timeout)
+
+    def set_light_reference(
+        self, reference_spectrum=list[float], timeout: int = REQUEST_TIMEOUT_IN_MS
+    ) -> None:
+        """
+        Set a light reference spectrum
+
+        The light reference spectrum is set by a provided reference spectrum.
+
+        Args:
+            reference_spectrum: list of spectral intensities which is used as a light reference spectrum.
+            timeout: timeout [ms] for setting light reference spectrum. Default: REQUEST_TIMEOUT_IN_MS
+        """
+        message = (
+            f"{Scpi.MEASURE_SPECTRUM_REFERENCE_LIGHT_SET_COMMAND} {reference_spectrum}"
+        )
+        self._request(message=message, timeout=timeout)
+
     def get_spectra(
         self, timeout: int = REQUEST_TIMEOUT_IN_MS
     ) -> typing.Generator[Spectrum, typing.Any]:
