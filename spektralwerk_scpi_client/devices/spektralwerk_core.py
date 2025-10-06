@@ -217,14 +217,11 @@ class SpektralwerkCore:
             timeout: timeout [ms] for maximum exposure time request. Default: REQUEST_TIMEOUT_IN_MS
 
         Returns:
-            bare maximum exposure time value without unit
+            bare maximum exposure time value
         """
         message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_MAX_QUERY
         response = self._request(message=message, timeout=timeout)
-        # TODO: the current firmware response contains the exposure time value and the
-        # current unit. Once the two are separated the cast to float can be done
-        # without splitting the string before.
-        return float(response.split(" ")[0])
+        return float(response)
 
     def get_exposure_time_min(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> float:
         """
@@ -234,14 +231,11 @@ class SpektralwerkCore:
             timeout: timeout [ms] for minimum exposure time request. Default: REQUEST_TIMEOUT_IN_MS
 
         Returns:
-            bare minimum exposure time value without unit
+            bare minimum exposure time value
         """
         message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_MIN_QUERY
         response = self._request(message=message, timeout=timeout)
-        # TODO: the current firmware response contains the exposure time value and the
-        # current unit. Once the two are separated the cast to float can be done
-        # without splitting the string before.
-        return float(response.split(" ")[0])
+        return float(response)
 
     def get_average_number(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> int:
         """
@@ -311,10 +305,7 @@ class SpektralwerkCore:
         """
         message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_QUERY
         response = self._request(message=message, timeout=timeout)
-        # TODO: the current firmware response contains the offset voltage value and the
-        # current unit. Once the two are separated the cast to float can be done
-        # without splitting the string before.
-        return float(response.split(" ")[0])
+        return float(response)
 
     def set_offset_voltage(
         self, offset_voltage: float, timeout: int = REQUEST_TIMEOUT_IN_MS
@@ -355,10 +346,7 @@ class SpektralwerkCore:
         """
         message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MAX_QUERY
         response = self._request(message=message, timeout=timeout)
-        # TODO: the current firmware response contains the offset voltage value and the
-        # current unit. Once the two are separated the cast to float can be done
-        # without splitting the string before.
-        return float(response.split(" ")[0])
+        return float(response)
 
     def get_offset_voltage_min(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> float:
         """
@@ -372,10 +360,7 @@ class SpektralwerkCore:
         """
         message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MIN_QUERY
         response = self._request(message=message, timeout=timeout)
-        # TODO: the current firmware response contains the offset voltage value and the
-        # current unit. Once the two are separated the cast to float can be done
-        # without splitting the string before.
-        return float(response.split(" ")[0])
+        return float(response)
 
     def get_spectra(
         self, timeout: int = REQUEST_TIMEOUT_IN_MS
