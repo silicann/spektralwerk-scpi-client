@@ -2,6 +2,12 @@
 
 All notable changes of the `spektralwerk_scpi_client` will be documented in this file
 
+## [0.3.1] - 2025-10-08
+
+### Fixed
+
+- Fix spelling issue
+
 ## [0.3.0] - 2025-10-08
 
 ### Added
