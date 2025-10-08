@@ -363,7 +363,7 @@ class SpektralwerkCore:
         response = self._request(message=message, timeout=timeout)
         return float(response)
 
-    def get_dark_refernce(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> list[float]:
+    def get_dark_reference(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> list[float]:
         """
         Obtain current stored dark reference spectrum
 
