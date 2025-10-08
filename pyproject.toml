@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "spektralwerk_scpi_client"
-version = "0.2.4"
+version = "0.3.0"
 description = "Spektralwerk SCPI communication library"
 readme = "README.md"
 requires-python = ">=3.8"
