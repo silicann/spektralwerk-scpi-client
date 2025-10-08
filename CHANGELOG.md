@@ -2,6 +2,19 @@
 
 All notable changes of the `spektralwerk_scpi_client` will be documented in this file
 
+## [0.3.0] - 2025-10-08
+
+### Added
+
+- Extend the available SCPI commands
+  - Dark reference
+  - Light reference
+  - Adjust processing steps to the in-band spectral data delivery
+
+### Changed
+
+- Remove unit separation since the unit is no longer appended to value query
+
 
 ## [0.2.4] - 2025-08-05
 
