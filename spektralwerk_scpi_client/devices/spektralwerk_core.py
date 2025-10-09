@@ -378,7 +378,7 @@ class SpektralwerkCore:
         return [float(value) for value in dark_reference]
 
     def acquire_dark_reference(
-        self, average_number=int | None, timeout: int = REQUEST_TIMEOUT_IN_MS
+        self, average_number: int | None = None, timeout: int = REQUEST_TIMEOUT_IN_MS
     ) -> None:
         """
         Acquire a dark reference spectrum
@@ -398,7 +398,7 @@ class SpektralwerkCore:
         self._request(message=message, timeout=timeout)
 
     def set_dark_reference(
-        self, reference_spectrum=list[float], timeout: int = REQUEST_TIMEOUT_IN_MS
+        self, reference_spectrum: list[float], timeout: int = REQUEST_TIMEOUT_IN_MS
     ) -> None:
         """
         Set a dark reference spectrum
@@ -450,7 +450,7 @@ class SpektralwerkCore:
         self._request(message=message, timeout=timeout)
 
     def set_light_reference(
-        self, reference_spectrum=list[float], timeout: int = REQUEST_TIMEOUT_IN_MS
+        self, reference_spectrum: list[float], timeout: int = REQUEST_TIMEOUT_IN_MS
     ) -> None:
         """
         Set a light reference spectrum
@@ -522,7 +522,7 @@ class SpektralwerkCore:
             averaged spectra
         """
 
-        # adjust processing steps to obtain averaged spectra
+        # adjust processing steps to obtain averaged spectra; other processing steps are removed
         self.set_processing([ProcessingStep.AVERAGE], timeout=timeout)
 
         message = Scpi.MEASURE_SPECTRUM_REQUEST_QUERY
