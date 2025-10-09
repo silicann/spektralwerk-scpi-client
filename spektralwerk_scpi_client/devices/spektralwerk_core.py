@@ -18,6 +18,13 @@ _logger = logging.getLogger()
 
 
 class Spectrum(typing.NamedTuple):
+    """
+    Basic spectrum class
+
+    A spectrum consists of a timestamp in [s] and list of floats containing the spectral
+    intensities.
+    """
+
     timestamp_sec: float
     data: list[float]
 
@@ -96,6 +103,16 @@ class SpektralwerkCore:
             raise
         _logger.debug("Response received: %s", response)
         return response
+
+    def _spectrum_generator(
+        self, message: str, timeout: int
+    ) -> typing.Generator[Spectrum, typing.Any]:
+        while True:
+            [timestamp_msec, *spectral_data] = self._request(
+                message=message, timeout=timeout
+            ).split(",")
+            timestamp_sec = float(timestamp_msec) / 1_000_000
+            yield Spectrum(timestamp_sec, [float(value) for value in spectral_data])
 
     def get_identity(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> str:
         """
@@ -479,13 +496,7 @@ class SpektralwerkCore:
             raw spectra
         """
         message = Scpi.MEASURE_SPECTRUM_REQUEST_RAW_QUERY
-        while True:
-            [timestamp_msec, *spectral_data] = (
-                self._request(message=message, timeout=timeout)
-            ).split(",")
-            # the timestamp delivered from the Spektralwerk is in µs and is delivered in seconds
-            timestamp_sec = float(timestamp_msec) / 1_000_000
-            yield Spectrum(timestamp_sec, [float(value) for value in spectral_data])
+        return self._spectrum_generator(message, timeout)
 
     def set_processing(
         self,
@@ -526,13 +537,7 @@ class SpektralwerkCore:
         self.set_processing([ProcessingStep.AVERAGE], timeout=timeout)
 
         message = Scpi.MEASURE_SPECTRUM_REQUEST_QUERY
-        while True:
-            [timestamp_msec, *spectral_data] = (
-                self._request(message=message, timeout=timeout)
-            ).split(",")
-            # the timestamp delivered from the Spektralwerk is in µs and is delivered in seconds
-            timestamp_sec = float(timestamp_msec) / 1_000_000
-            yield Spectrum(timestamp_sec, [float(value) for value in spectral_data])
+        return self._spectrum_generator(message, timeout)
 
     def process_request(
         self, command: str, timeout: int = REQUEST_TIMEOUT_IN_MS
