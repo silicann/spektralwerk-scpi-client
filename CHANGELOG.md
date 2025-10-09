@@ -2,6 +2,12 @@
 
 All notable changes of the `spektralwerk_scpi_client` will be documented in this file
 
+## [0.3.2] - 2025-10-09
+
+### Fixed
+
+- Set and acquire functions does not cause an "Invalid character data" error
+
 ## [0.3.1] - 2025-10-08
 
 ### Fixed
