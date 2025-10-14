@@ -2,6 +2,13 @@
 
 All notable changes of the `spektralwerk_scpi_client` will be documented in this file
 
+## [0.x.x] -
+
+### Changed
+
+- introduce pydantic BaseModel for Identity
+
+
 ## [0.3.2] - 2025-10-09
 
 ### Fixed

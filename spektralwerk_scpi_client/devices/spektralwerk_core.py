@@ -9,6 +9,7 @@ import typing
 import cobs.cobs
 import pyvisa
 
+from spektralwerk_scpi_client.devices.models import Identity
 from spektralwerk_scpi_client.exceptions import (
     SpektralwerkConnectionError,
     SpektralwerkError,
@@ -227,7 +228,7 @@ class SpektralwerkCore:
             error_code, error_message = -1, response
         return SCPIErrorMessage(code=error_code, message=error_message)
 
-    def get_identity(self) -> str:
+    def get_identity(self) -> Identity:
         """
         Obtain the Spektralwerk identity
 
@@ -237,7 +238,15 @@ class SpektralwerkCore:
             Spektralwerk identity
         """
         message = SCPI.IDN_QUERY
-        return self._request_with_error_check(message=message)
+        [vendor, model, serial_number, firmware_version] = (
+            self._request_with_error_check(message=message).split(",")
+        )
+        return Identity(
+            vendor=vendor,
+            model=model,
+            serial_number=serial_number,
+            firmware_version=firmware_version,
+        )
 
     def get_spectrometer_peak_count(self) -> int:
         """

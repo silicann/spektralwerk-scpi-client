@@ -14,6 +14,7 @@ keywords = ["Spektralwerk", "SCPI"]
 classifiers = ["Programming Language :: Python"]
 dependencies = [
   "cobs",
+  "pydantic>=2.12.0",
   "pyVISA>=1.15.0",
   "pyVISA-py>=0.8.0",
 ]
