@@ -552,6 +552,15 @@ class SpektralwerkCore:
             message = f"{message} {','.join([step.value for step in processing_steps])}"
         self._request_with_error_check(message=message)
 
+    def set_request_count(self, count: int) -> None:
+        """
+        Set the number of spectra to obtain from a single call
+        """
+        message = SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_COMMAND.with_arguments(
+            count
+        )
+        self._request_with_error_check(message=message)
+
     def get_averaged_spectra(
         self,
     ) -> typing.Generator[Spectrum, typing.Any]:

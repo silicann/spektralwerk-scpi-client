@@ -4,10 +4,13 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 
 ## [0.x.x] -
 
+### Added
+
+- Add configuration for fixed number of streamed spectra
+
 ### Changed
 
 - introduce pydantic BaseModel for Identity
-
 
 ## [0.3.2] - 2025-10-09
 
