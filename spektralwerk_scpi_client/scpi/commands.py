@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import enum
 
 
@@ -56,6 +58,15 @@ class SCPICommand(enum.StrEnum):
     )
     MEASURE_SPECTRUM_REQUEST_QUERY = "MEASure:SPECtrum:REQuest?"
     MEASURE_SPECTRUM_REQUEST_RAW_QUERY = "MEASure:SPECtrum:REQuest:RAW?"
+    MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_COMMAND = (
+        "MEASure:SPECtrum:REQuest:CONFig:COUNt"
+    )
+    MEASURE_SPECTRUM_REQUEST_CONFIG_FREQUENCY_COMMAND = (
+        "MEASure:SPECtrum:REQuest:CONFig:FREQuency"
+    )
+    MEASURE_SPECTRUM_REQUEST_CONFIG_FORMAT_COMMAND = (
+        "MEASure:SPECtrum:REQuest:CONFig:FORMat"
+    )
     MEASURE_SPECTRUM_REQUEST_CONFIG_PROCESSING_COMMAND = (
         "MEASure:SPECtrum:REQuest:CONFig:PROCessing"
     )
@@ -63,3 +74,10 @@ class SCPICommand(enum.StrEnum):
         "MEASure:SPECtrum:REQuest:CONFig:PROCessing?"
     )
     MEASURE_SPECTRUM_SAMPLE_RAW_AVERAGED_QUERY = "MEASure:SPECtrum:SAMPle:RAW:AVERaged?"
+
+    def with_arguments(self, *args: str | float | None) -> str:
+        """Assemble a query with arguments"""
+        args_string = ",".join(str(item) for item in args)
+        if args_string:
+            return f"{self.value} {args_string}"
+        return self.value

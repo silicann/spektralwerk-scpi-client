@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+import struct
 import time
 import typing
 
+import cobs.cobs
 import pyvisa
 
 from spektralwerk_scpi_client.exceptions import (
@@ -12,7 +14,7 @@ from spektralwerk_scpi_client.exceptions import (
     SpektralwerkTimeoutError,
 )
 from spektralwerk_scpi_client.scpi.commands import SCPICommand as Scpi
-from spektralwerk_scpi_client.scpi.mnemonics import ProcessingStep
+from spektralwerk_scpi_client.scpi.mnemonics import OutputFormat, ProcessingStep
 
 _logger = logging.getLogger()
 
@@ -74,6 +76,34 @@ class SpektralwerkCore:
             raise SpektralwerkResponseError(message, error_code, error_message)
         return response
 
+    def _request_stream(
+        self, message: str, delimiter: bytes, timeout: int
+    ) -> typing.Generator[str]:
+        _logger.debug("Stream Query sent: %s", message)
+        try:
+            with pyvisa.ResourceManager(VISA_BACKEND).open_resource(
+                self._resource,
+                read_termination=self.read_termination,
+                write_termination=self.write_termination,
+            ) as session:
+                session.timeout = timeout
+                session.clear()
+                session.write(message)  # type: ignore[attr-defined]
+                with session.read_termination_context(delimiter):  # type: ignore[attr-defined]
+                    while True:
+                        response = session.read_raw()  # type: ignore[attr-defined]
+                        yield response.rstrip(delimiter)
+                session.close()
+                time.sleep(DEVICE_RECONNECTION_DELAY)
+        except ConnectionRefusedError:
+            raise SpektralwerkConnectionError(self._host, self._port) from None
+        # pyvista raises unspecific exceptions which contain a status code with the precise error
+        # description
+        except Exception as exc:
+            if str(pyvisa.constants.StatusCode.error_timeout) in str(exc):
+                raise SpektralwerkTimeoutError from None
+            raise
+
     def _request(self, message: str, timeout: int) -> str:
         _logger.debug("Query sent: %s", message)
         try:
@@ -99,14 +129,43 @@ class SpektralwerkCore:
         return response
 
     def _spectrum_generator(
-        self, message: str, timeout: int
+        self,
+        output_format: OutputFormat | None = OutputFormat.COBS_INT16,
+        spectra_count: int | None = None,
+        sample_frequency: float | None = None,
+        timeout: int = REQUEST_TIMEOUT_IN_MS,
+        format_timestamp: str = "Q",
+        format_pixel: str = "h",
     ) -> typing.Generator[Spectrum, typing.Any]:
-        while True:
-            [timestamp_msec, *spectral_data] = self._request(
-                message=message, timeout=timeout
-            ).split(",")
-            timestamp_sec = float(timestamp_msec) / 1_000_000
-            yield Spectrum(timestamp_sec, [float(value) for value in spectral_data])
+        for query in (
+            # infinite number of spectra to retrieve
+            Scpi.MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_COMMAND.with_arguments(
+                0 if spectra_count is None else spectra_count
+            ),
+            # as fast as possible
+            Scpi.MEASURE_SPECTRUM_REQUEST_CONFIG_FREQUENCY_COMMAND.with_arguments(
+                0 if sample_frequency is None else sample_frequency
+            ),
+            Scpi.MEASURE_SPECTRUM_REQUEST_CONFIG_FORMAT_COMMAND.with_arguments(
+                output_format
+            ),
+        ):
+            self._request(query, timeout)
+        for raw_spectrum in self._request_stream(
+            Scpi.MEASURE_SPECTRUM_REQUEST_QUERY, delimiter=b"\0", timeout=timeout
+        ):
+            decoded_spectrum = cobs.cobs.decode(raw_spectrum)
+            pixel_count = (
+                len(decoded_spectrum) - struct.calcsize(format_timestamp)
+            ) // struct.calcsize(format_pixel)
+            unpack_format = f"<{format_timestamp}{pixel_count}{format_pixel}"
+            [timestamp_musec, *spectral_data] = struct.unpack(
+                unpack_format, decoded_spectrum
+            )
+            yield Spectrum(
+                float(timestamp_musec / 1_000_000),
+                [float(value) for value in spectral_data],
+            )
 
     def get_identity(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> str:
         """
@@ -487,10 +546,9 @@ class SpektralwerkCore:
             timeout: timeout [ms] for spectra request. Default: REQUEST_TIMEOUT_IN_MS
 
         Returns:
-            raw spectra
+            incremental delivery of spectra
         """
-        message = Scpi.MEASURE_SPECTRUM_REQUEST_RAW_QUERY
-        return self._spectrum_generator(message, timeout)
+        return self._spectrum_generator(timeout=timeout)
 
     def set_processing(
         self,
@@ -529,9 +587,7 @@ class SpektralwerkCore:
 
         # adjust processing steps to obtain averaged spectra; other processing steps are removed
         self.set_processing([ProcessingStep.AVERAGE], timeout=timeout)
-
-        message = Scpi.MEASURE_SPECTRUM_REQUEST_QUERY
-        return self._spectrum_generator(message, timeout)
+        return self._spectrum_generator(timeout=timeout)
 
     def process_request(
         self, command: str, timeout: int = REQUEST_TIMEOUT_IN_MS

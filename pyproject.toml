@@ -13,6 +13,7 @@ license-files = ["LICENSE"]
 keywords = ["Spektralwerk", "SCPI"]
 classifiers = ["Programming Language :: Python"]
 dependencies = [
+  "cobs",
   "pyVISA>=1.15.0",
   "pyVISA-py>=0.8.0",
 ]
@@ -60,6 +61,11 @@ indent-width = 4
   "S101",   # allow usage of asserts for tests in tests/ folder
   "ARG001", # allow unused function arguments
 ]
+
+[[tool.mypy.overrides]]
+module = ["cobs.*"]
+follow_untyped_imports = true
+
 
 [tool.coverage.run]
 source_pkgs = ["spektralwerk_scpi_client", "tests"]
