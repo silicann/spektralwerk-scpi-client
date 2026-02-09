@@ -31,5 +31,6 @@ class SpektralwerkResponseError(SpektralwerkError):
         self.scpi_error_code = scpi_error_code
         self.scpi_error_message = scpi_error_message
         super().__init__(
-            f"The command {command} lead to {self.scpi_error_code} - {self.scpi_error_message}."
+            f"The command '{command}' lead to '{self.scpi_error_code}'"
+            f" - '{self.scpi_error_message}'."
         )
