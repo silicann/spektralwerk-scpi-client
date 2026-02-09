@@ -55,14 +55,6 @@ class SpektralwerkCore:
         # the Spektralwerk Core uses TCP/IP socket communication
         self._resource = f"TCPIP0::{host}::{port}::SOCKET"
 
-    def _init_resource(self, resource: pyvisa.Resource, timeout: int) -> None:
-        resource.timeout = timeout
-        resource.clear()
-
-    def _finalize_resource(self, resource: pyvisa.Resource) -> None:
-        resource.close()
-        time.sleep(DEVICE_RECONNECTION_DELAY)
-
     def _request_handler(self, resource: pyvisa.Resource, message: str) -> str:
         # append query of the event status register
         message_with_esr = f"{message};{Scpi.ESR_QUERY}"
@@ -90,9 +82,11 @@ class SpektralwerkCore:
                 read_termination=self.read_termination,
                 write_termination=self.write_termination,
             ) as session:
-                self._init_resource(session, timeout)
+                session.timeout = timeout
+                session.clear()
                 response = self._request_handler(session, message)
-                self._finalize_resource(session)
+                session.close()
+                time.sleep(DEVICE_RECONNECTION_DELAY)
         except ConnectionRefusedError:
             raise SpektralwerkConnectionError(self._host, self._port) from None
         # pyvista raises unspecific exceptions which contain a status code with the precise error
