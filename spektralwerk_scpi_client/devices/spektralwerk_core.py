@@ -14,6 +14,7 @@ from spektralwerk_scpi_client.exceptions import (
     SpektralwerkResponseError,
     SpektralwerkTimeoutError,
 )
+from spektralwerk_scpi_client.scpi import SCPIErrorMessage
 from spektralwerk_scpi_client.scpi.commands import SCPICommand as Scpi
 from spektralwerk_scpi_client.scpi.mnemonics import OutputFormat, ProcessingStep
 
@@ -127,6 +128,13 @@ class SpektralwerkCore:
             _logger.debug("Response received: %s", response)
             return response
 
+    def _request_without_error_check(self, message: str, timeout: int) -> str:
+        _logger.debug("Query sent (without error checks): %s", message)
+        with self.get_session(timeout) as session:
+            response = session.query(message)
+            _logger.debug("Response received (without error checks): %s", response)
+            return response
+
     def _spectrum_generator(
         self,
         output_format: OutputFormat | None = OutputFormat.COBS_INT16,
@@ -165,6 +173,16 @@ class SpektralwerkCore:
                 float(timestamp_musec / 1_000_000),
                 [float(value) for value in spectral_data],
             )
+
+    def get_error_message(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> SCPIErrorMessage:
+        message = Scpi.SYSTEM_ERROR_NEXT_QUERY
+        response = self._request_without_error_check(message=message, timeout=timeout)
+        try:
+            error_code_string, error_message = response.split(",")
+            error_code = int(error_code_string)
+        except ValueError:
+            error_code, error_message = -1, response
+        return SCPIErrorMessage(code=error_code, message=error_message)
 
     def get_identity(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> str:
         """
