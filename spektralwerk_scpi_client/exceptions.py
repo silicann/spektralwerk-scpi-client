@@ -37,3 +37,9 @@ class SpektralwerkResponseError(SpektralwerkError):
             f"The command '{command}' lead to '{self.scpi_error_code}'"
             f" - '{self.scpi_error_message}'."
         )
+
+
+class SpektralwerkUnexpectedResponseError(SpektralwerkError):
+    """
+    The response was not expected.
+    """

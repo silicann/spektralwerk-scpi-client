@@ -15,6 +15,7 @@ from spektralwerk_scpi_client.exceptions import (
     SpektralwerkError,
     SpektralwerkResponseError,
     SpektralwerkTimeoutError,
+    SpektralwerkUnexpectedResponseError,
 )
 from spektralwerk_scpi_client.scpi import SCPIErrorMessage
 from spektralwerk_scpi_client.scpi.commands import (
@@ -35,6 +36,11 @@ class Spectrum(typing.NamedTuple):
 
     timestamp_sec: float
     data: list[float]
+
+
+class ROI(typing.NamedTuple):
+    start: int
+    end: int
 
 
 # NOTE: The Spektralwerk Core needs some ms before the next connection is accepted. Therefore
@@ -552,6 +558,10 @@ class SpektralwerkCore:
             message = f"{message} {','.join([step.value for step in processing_steps])}"
         self._request_with_error_check(message=message)
 
+    def get_request_count(self) -> int:
+        message = f"{SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_QUERY}"
+        return int(self._request_with_error_check(message=message))
+
     def set_request_count(self, count: int) -> None:
         """
         Set the number of spectra to obtain from a single call
@@ -559,6 +569,26 @@ class SpektralwerkCore:
         message = SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_COMMAND.with_arguments(
             count
         )
+        self._request_with_error_check(message=message)
+
+    def get_request_roi(self) -> tuple[int, int]:
+        """
+        Obtain the region-of-interest
+
+        The region-of-interest limits the spectral output to the provided pixel range.
+
+        Returns:
+            region-of-interest
+        """
+        message = f"{SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_ROI_QUERY}"
+        try:
+            roi = ROI(*self._request_with_error_check(message=message).split(","))
+        except TypeError as exc:
+            raise SpektralwerkUnexpectedResponseError from exc
+        return roi
+
+    def set_request_roi(self, roi: tuple[int, int]) -> None:
+        message = f"{SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_ROI_COMMAND} {','.join(str(pixel) for pixel in roi)}"
         self._request_with_error_check(message=message)
 
     def get_averaged_spectra(

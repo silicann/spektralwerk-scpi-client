@@ -7,6 +7,9 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 ### Added
 
 - Add configuration for fixed number of streamed spectra
+- Enable infinite stream of spectra
+- Optional output format `cobs_int16`
+- Provide methods to restrict the pixel returned to a region-of-interest
 
 ### Changed
 

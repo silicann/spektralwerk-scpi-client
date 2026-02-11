@@ -64,6 +64,9 @@ class SCPICommand(enum.StrEnum):
     MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_COMMAND = (
         "MEASure:SPECtrum:REQuest:CONFig:COUNt"
     )
+    MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_QUERY = (
+        "MEASure:SPECtrum:REQuest:CONFig:COUNt?"
+    )
     MEASURE_SPECTRUM_REQUEST_CONFIG_FREQUENCY_COMMAND = (
         "MEASure:SPECtrum:REQuest:CONFig:FREQuency"
     )
@@ -76,6 +79,8 @@ class SCPICommand(enum.StrEnum):
     MEASURE_SPECTRUM_REQUEST_CONFIG_PROCESSING_QUERY = (
         "MEASure:SPECtrum:REQuest:CONFig:PROCessing?"
     )
+    MEASURE_SPECTRUM_REQUEST_CONFIG_ROI_COMMAND = "MEASure:SPECtrum:REQuest:CONFig:ROI"
+    MEASURE_SPECTRUM_REQUEST_CONFIG_ROI_QUERY = "MEASure:SPECtrum:REQuest:CONFig:ROI?"
     MEASURE_SPECTRUM_SAMPLE_RAW_AVERAGED_QUERY = "MEASure:SPECtrum:SAMPle:RAW:AVERaged?"
 
     def with_arguments(self, *args: str | float | None) -> str:
