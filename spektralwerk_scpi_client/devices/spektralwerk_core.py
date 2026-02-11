@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import struct
 import time
@@ -76,57 +77,55 @@ class SpektralwerkCore:
             raise SpektralwerkResponseError(message, error_code, error_message)
         return response
 
+    @contextlib.contextmanager
+    def get_session(self, timeout: int) -> pyvisa.resources.Resource:
+        """ Create a session context for reading and writing.
+
+        Use `session.query` for typical write/read combinations.
+        Use `session.write` and session.read` for raw communication handling.
+        Please note: the connection will be closed by the peer as soon as our write termination is
+        processed.
+        Thus, you may emit only a single request ("query" or "write") in a connection context.
+        This single request may be composed of multiple queries/commands separated by ";".
+        """
+        try:
+            with pyvisa.ResourceManager(VISA_BACKEND).open_resource(
+                self._resource,
+                read_termination=self.read_termination,
+                write_termination=self.write_termination,
+            ) as session:
+                session.timeout = timeout
+                session.clear()
+                try:
+                    yield session
+                except Exception as exc:
+                    # pyvisa raises unspecific exceptions which contain a status code with the
+                    # precise error description.
+                    if str(pyvisa.constants.StatusCode.error_timeout) in str(exc):
+                        raise SpektralwerkTimeoutError from exc
+                    raise
+                session.close()
+                time.sleep(DEVICE_RECONNECTION_DELAY)
+        except ConnectionRefusedError as exc:
+            raise SpektralwerkConnectionError(self._host, self._port) from exc
+
     def _request_stream(
         self, message: str, delimiter: bytes, timeout: int
     ) -> typing.Generator[str]:
         _logger.debug("Stream Query sent: %s", message)
-        try:
-            with pyvisa.ResourceManager(VISA_BACKEND).open_resource(
-                self._resource,
-                read_termination=self.read_termination,
-                write_termination=self.write_termination,
-            ) as session:
-                session.timeout = timeout
-                session.clear()
-                session.write(message)  # type: ignore[attr-defined]
-                with session.read_termination_context(delimiter):  # type: ignore[attr-defined]
-                    while True:
-                        response = session.read_raw()  # type: ignore[attr-defined]
-                        yield response.rstrip(delimiter)
-                session.close()
-                time.sleep(DEVICE_RECONNECTION_DELAY)
-        except ConnectionRefusedError:
-            raise SpektralwerkConnectionError(self._host, self._port) from None
-        # pyvista raises unspecific exceptions which contain a status code with the precise error
-        # description
-        except Exception as exc:
-            if str(pyvisa.constants.StatusCode.error_timeout) in str(exc):
-                raise SpektralwerkTimeoutError from None
-            raise
+        with self.get_session(timeout) as session:
+            session.write(message)  # type: ignore[attr-defined]
+            with session.read_termination_context(delimiter):  # type: ignore[attr-defined]
+                while True:
+                    response = session.read_raw()  # type: ignore[attr-defined]
+                    yield response.rstrip(delimiter)
 
     def _request(self, message: str, timeout: int) -> str:
         _logger.debug("Query sent: %s", message)
-        try:
-            with pyvisa.ResourceManager(VISA_BACKEND).open_resource(
-                self._resource,
-                read_termination=self.read_termination,
-                write_termination=self.write_termination,
-            ) as session:
-                session.timeout = timeout
-                session.clear()
-                response = self._request_handler(session, message)
-                session.close()
-                time.sleep(DEVICE_RECONNECTION_DELAY)
-        except ConnectionRefusedError:
-            raise SpektralwerkConnectionError(self._host, self._port) from None
-        # pyvista raises unspecific exceptions which contain a status code with the precise error
-        # description
-        except Exception as exc:
-            if str(pyvisa.constants.StatusCode.error_timeout) in str(exc):
-                raise SpektralwerkTimeoutError from None
-            raise
-        _logger.debug("Response received: %s", response)
-        return response
+        with self.get_session(timeout) as session:
+            response = self._request_handler(session, message)
+            _logger.debug("Response received: %s", response)
+            return response
 
     def _spectrum_generator(
         self,
