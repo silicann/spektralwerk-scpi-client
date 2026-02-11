@@ -36,8 +36,7 @@ class Spectrum(typing.NamedTuple):
 
 # NOTE: The Spektralwerk Core needs some ms before the next connection is accepted. Therefore
 # the DEVICE_RECONNECTION_DELAY is introduced to delay the finalization of a query.
-# Any delay >= 0.5 ms works fine. Below, 0.5 ms the device might hang.
-DEVICE_RECONNECTION_DELAY = 0.5
+DEVICE_RECONNECTION_DELAY = 0.02
 
 # using the open source pyvisa-py backend since NI-VISA is closed sources
 VISA_BACKEND = "@py"
@@ -59,6 +58,9 @@ class SpektralwerkCore:
 
         # the Spektralwerk Core uses TCP/IP socket communication
         self._resource = f"TCPIP0::{host}::{port}::SOCKET"
+
+        # wait a bit between two requests
+        self._wait_until_next_connection_time = 0
 
     def _request_handler_with_error_check(self, resource: pyvisa.Resource, message: str) -> str:
         """ Embed the SCPI message within "*CLS" and "*ESR?" in order to check its success
@@ -107,6 +109,9 @@ class SpektralwerkCore:
         Thus, you may emit only a single request ("query" or "write") in a connection context.
         This single request may be composed of multiple queries/commands separated by ";".
         """
+        delay_time = self._wait_until_next_connection_time - time.monotonic()
+        if delay_time > 0:
+            time.sleep(delay_time)
         try:
             with pyvisa.ResourceManager(VISA_BACKEND).open_resource(
                 self._resource,
@@ -124,7 +129,7 @@ class SpektralwerkCore:
                         raise SpektralwerkTimeoutError from exc
                     raise
                 session.close()
-                time.sleep(DEVICE_RECONNECTION_DELAY)
+                self._wait_until_next_connection_time = time.monotonic() + DEVICE_RECONNECTION_DELAY
         except ConnectionRefusedError as exc:
             raise SpektralwerkConnectionError(self._host, self._port) from exc
 
