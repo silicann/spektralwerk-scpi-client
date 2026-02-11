@@ -6,6 +6,9 @@ import enum
 class SCPICommand(enum.StrEnum):
     # SCPI standard/IEEE 488 commands
     IDN_QUERY = "*IDN?"
+    # clear status bits
+    CLS_COMMAND = "*CLS"
+    # query status bits
     ESR_QUERY = "*ESR?"
     SYSTEM_ERROR_NEXT_QUERY = "SYSTem:ERRor:NEXT?"
 

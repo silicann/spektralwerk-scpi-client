@@ -11,6 +11,7 @@ import pyvisa
 
 from spektralwerk_scpi_client.exceptions import (
     SpektralwerkConnectionError,
+    SpektralwerkError,
     SpektralwerkResponseError,
     SpektralwerkTimeoutError,
 )
@@ -59,9 +60,16 @@ class SpektralwerkCore:
         # the Spektralwerk Core uses TCP/IP socket communication
         self._resource = f"TCPIP0::{host}::{port}::SOCKET"
 
-    def _request_handler(self, resource: pyvisa.Resource, message: str) -> str:
-        # append query of the event status register
-        message_with_esr = f"{message};{Scpi.ESR_QUERY}"
+    def _request_handler_with_error_check(self, resource: pyvisa.Resource, message: str) -> str:
+        """ Embed the SCPI message within "*CLS" and "*ESR?" in order to check its success
+
+        Checking the success of a SCPI query requires a look into the status register (`*ESR?`).
+        In order to recover from earlier errors, we need to discard potentially existing status
+        flags before running our request (`*CLS`).
+        """
+        # Clear status register before and read it right after the query.
+        # This approach is used for checking the success of a query.
+        message_with_esr = f"{Scpi.CLS_COMMAND};{message};{Scpi.ESR_QUERY}"
         response_with_esr = resource.query(message_with_esr).rstrip("\r")  # type: ignore
         if self.command_separator in response_with_esr:
             response, event_status_register = response_with_esr.rsplit(
@@ -69,13 +77,23 @@ class SpektralwerkCore:
             )
         else:
             response, event_status_register = "", response_with_esr
-        # any value different than "0" indicates a SCPI error
-        # the current error is obtained from the error queue of the device
+        # Any value different than "0" indicates a SCPI error.
         if event_status_register != "0":
-            error_code, error_message = resource.query(  # type: ignore
-                Scpi.SYSTEM_ERROR_NEXT_QUERY
-            ).split(",")
-            raise SpektralwerkResponseError(message, error_code, error_message)
+            """
+            We cannot re-use the current session for error retrieval, since we indicated the
+            connection to be closed (the line termination was sent above).
+            """
+            try:
+                # Use a short timeout in order to avoid problem escalation.
+                error = self.get_error_message(timeout=0.2)
+            except SpektralwerkError:
+                # The connection is somehow lost forever. Stop asking questions.
+                raise SpektralwerkResponseError(
+                    message,
+                    event_status_register,
+                    "SCPI request returned with non-zero status flag",
+                ) from None
+            raise SpektralwerkResponseError(message, error.code, error.message)
         return response
 
     @contextlib.contextmanager
@@ -121,10 +139,10 @@ class SpektralwerkCore:
                     response = session.read_raw()  # type: ignore[attr-defined]
                     yield response.rstrip(delimiter)
 
-    def _request(self, message: str, timeout: int) -> str:
+    def _request_with_error_check(self, message: str, timeout: int) -> str:
         _logger.debug("Query sent: %s", message)
         with self.get_session(timeout) as session:
-            response = self._request_handler(session, message)
+            response = self._request_handler_with_error_check(session, message)
             _logger.debug("Response received: %s", response)
             return response
 
@@ -157,7 +175,7 @@ class SpektralwerkCore:
                 output_format
             ),
         ):
-            self._request(query, timeout)
+            self._request_with_error_check(query, timeout)
         for raw_spectrum in self._request_stream(
             Scpi.MEASURE_SPECTRUM_REQUEST_QUERY, delimiter=b"\0", timeout=timeout
         ):
@@ -197,7 +215,7 @@ class SpektralwerkCore:
             Spektralwerk identity
         """
         message = Scpi.IDN_QUERY
-        return self._request(message=message, timeout=timeout)
+        return self._request_with_error_check(message=message, timeout=timeout)
 
     def get_spectrometer_peak_count(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> int:
         """
@@ -210,7 +228,7 @@ class SpektralwerkCore:
             Maximum spectrometer count value
         """
         message = Scpi.DEVICE_SPECTROMETER_ARRAY_PEAK_QUERY
-        return int(self._request(message=message, timeout=timeout))
+        return int(self._request_with_error_check(message=message, timeout=timeout))
 
     def get_spectrometer_resolution(
         self, timeout: int = REQUEST_TIMEOUT_IN_MS
@@ -225,7 +243,7 @@ class SpektralwerkCore:
             Averaged spectrometer resolution
         """
         message = Scpi.DEVICE_SPECTROMETER_RESOLUTION_QUERY
-        return float(self._request(message=message, timeout=timeout))
+        return float(self._request_with_error_check(message=message, timeout=timeout))
 
     def get_pixels_count(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> int:
         """
@@ -238,7 +256,7 @@ class SpektralwerkCore:
             pixel count
         """
         message = Scpi.DEVICE_SPECTROMETER_ARRAY_PCOUNT_QUERY
-        return int(self._request(message=message, timeout=timeout))
+        return int(self._request_with_error_check(message=message, timeout=timeout))
 
     def get_pixel_wavelengths(
         self, timeout: int = REQUEST_TIMEOUT_IN_MS
@@ -253,7 +271,7 @@ class SpektralwerkCore:
             array with wavelength value for each pixel
         """
         message = Scpi.DEVICE_SPECTROMETER_PIXELS_WAVELENGTHS_QUERY
-        wavelengths = (self._request(message=message, timeout=timeout)).split(",")
+        wavelengths = (self._request_with_error_check(message=message, timeout=timeout)).split(",")
         return [float(wavelength) for wavelength in wavelengths]
 
     def get_exposure_time(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> float:
@@ -267,7 +285,7 @@ class SpektralwerkCore:
             exposure time value
         """
         message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_QUERY
-        response = self._request(message=message, timeout=timeout)
+        response = self._request_with_error_check(message=message, timeout=timeout)
         return float(response)
 
     def set_exposure_time(
@@ -282,7 +300,7 @@ class SpektralwerkCore:
 
         """
         message = f"{Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_COMMAND} {exposure_time}"
-        self._request(message=message, timeout=timeout)
+        self._request_with_error_check(message=message, timeout=timeout)
 
     def get_exposure_time_unit(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> str:
         """
@@ -295,7 +313,7 @@ class SpektralwerkCore:
             unit of the exposure time
         """
         message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_UNIT_QUERY
-        return self._request(message=message, timeout=timeout)
+        return self._request_with_error_check(message=message, timeout=timeout)
 
     def get_exposure_time_max(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> float:
         """
@@ -308,7 +326,7 @@ class SpektralwerkCore:
             bare maximum exposure time value
         """
         message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_MAX_QUERY
-        response = self._request(message=message, timeout=timeout)
+        response = self._request_with_error_check(message=message, timeout=timeout)
         return float(response)
 
     def get_exposure_time_min(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> float:
@@ -322,7 +340,7 @@ class SpektralwerkCore:
             bare minimum exposure time value
         """
         message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_MIN_QUERY
-        response = self._request(message=message, timeout=timeout)
+        response = self._request_with_error_check(message=message, timeout=timeout)
         return float(response)
 
     def get_average_number(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> int:
@@ -336,7 +354,7 @@ class SpektralwerkCore:
             current value for number of averaged spectra
         """
         message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_QUERY
-        response = self._request(message=message, timeout=timeout)
+        response = self._request_with_error_check(message=message, timeout=timeout)
         return int(response)
 
     def set_average_number(
@@ -351,7 +369,7 @@ class SpektralwerkCore:
 
         """
         message = f"{Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_COMMAND} {number_of_spectra}"
-        self._request(message=message, timeout=timeout)
+        self._request_with_error_check(message=message, timeout=timeout)
 
     def get_average_number_max(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> int:
         """
@@ -364,7 +382,7 @@ class SpektralwerkCore:
             maximum value for number of averaged spectra
         """
         message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_MAX_QUERY
-        response = self._request(message=message, timeout=timeout)
+        response = self._request_with_error_check(message=message, timeout=timeout)
         return int(response)
 
     def get_average_number_min(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> int:
@@ -378,7 +396,7 @@ class SpektralwerkCore:
             minimum value for number of averaged spectra
         """
         message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_MIN_QUERY
-        response = self._request(message=message, timeout=timeout)
+        response = self._request_with_error_check(message=message, timeout=timeout)
         return int(response)
 
     def get_offset_voltage(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> float:
@@ -392,7 +410,7 @@ class SpektralwerkCore:
             current value for spectrometer pixel offset voltage
         """
         message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_QUERY
-        response = self._request(message=message, timeout=timeout)
+        response = self._request_with_error_check(message=message, timeout=timeout)
         return float(response)
 
     def set_offset_voltage(
@@ -407,7 +425,7 @@ class SpektralwerkCore:
 
         """
         message = f"{Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_COMMAND} {offset_voltage}"
-        self._request(message=message, timeout=timeout)
+        self._request_with_error_check(message=message, timeout=timeout)
 
     def get_offset_voltag_unit(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> str:
         """
@@ -420,7 +438,7 @@ class SpektralwerkCore:
             unit of the offset voltage
         """
         message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_UNIT_QUERY
-        return self._request(message=message, timeout=timeout)
+        return self._request_with_error_check(message=message, timeout=timeout)
 
     def get_offset_voltage_max(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> float:
         """
@@ -433,7 +451,7 @@ class SpektralwerkCore:
             maximum value for spectrometer pixel offset voltage
         """
         message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MAX_QUERY
-        response = self._request(message=message, timeout=timeout)
+        response = self._request_with_error_check(message=message, timeout=timeout)
         return float(response)
 
     def get_offset_voltage_min(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> float:
@@ -447,7 +465,7 @@ class SpektralwerkCore:
             minimum value for spectrometer pixel offset voltage
         """
         message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MIN_QUERY
-        response = self._request(message=message, timeout=timeout)
+        response = self._request_with_error_check(message=message, timeout=timeout)
         return float(response)
 
     def get_dark_reference(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> list[float]:
@@ -461,7 +479,7 @@ class SpektralwerkCore:
             current dark reference spectrum
         """
         message = Scpi.MEASURE_SPECTRUM_REFERENCE_DARK_QUERY
-        dark_reference = self._request(message=message, timeout=timeout).split(",")
+        dark_reference = self._request_with_error_check(message=message, timeout=timeout).split(",")
         return [float(value) for value in dark_reference]
 
     def acquire_dark_reference(
@@ -482,7 +500,7 @@ class SpektralwerkCore:
         message = f"{Scpi.MEASURE_SPECTRUM_REFERENCE_DARK_ACQUIRE_COMMAND}"
         if average_number:
             message = f"{message} {average_number}"
-        self._request(message=message, timeout=timeout)
+        self._request_with_error_check(message=message, timeout=timeout)
 
     def set_dark_reference(
         self, reference_spectrum: list[float], timeout: int = REQUEST_TIMEOUT_IN_MS
@@ -500,7 +518,7 @@ class SpektralwerkCore:
         message = (
             f"{Scpi.MEASURE_SPECTRUM_REFERENCE_DARK_SET_COMMAND} {reference_spectrum}"
         )
-        self._request(message=message, timeout=timeout)
+        self._request_with_error_check(message=message, timeout=timeout)
 
     def get_light_reference(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> list[float]:
         """
@@ -513,7 +531,7 @@ class SpektralwerkCore:
             current light reference spectrum
         """
         message = Scpi.MEASURE_SPECTRUM_REFERENCE_LIGHT_QUERY
-        light_refernce = self._request(message=message, timeout=timeout).split(",")
+        light_refernce = self._request_with_error_check(message=message, timeout=timeout).split(",")
         return [float(value) for value in light_refernce]
 
     def acquire_light_reference(
@@ -534,7 +552,7 @@ class SpektralwerkCore:
         message = f"{Scpi.MEASURE_SPECTRUM_REFERENCE_LIGHT_ACQUIRE_COMMAND}"
         if average_number:
             message = f"{message} {average_number}"
-        self._request(message=message, timeout=timeout)
+        self._request_with_error_check(message=message, timeout=timeout)
 
     def set_light_reference(
         self, reference_spectrum: list[float], timeout: int = REQUEST_TIMEOUT_IN_MS
@@ -551,7 +569,7 @@ class SpektralwerkCore:
         message = (
             f"{Scpi.MEASURE_SPECTRUM_REFERENCE_LIGHT_SET_COMMAND} {reference_spectrum}"
         )
-        self._request(message=message, timeout=timeout)
+        self._request_with_error_check(message=message, timeout=timeout)
 
     def get_spectra(
         self, timeout: int = REQUEST_TIMEOUT_IN_MS
@@ -584,7 +602,7 @@ class SpektralwerkCore:
 
         if processing_steps:
             message = f"{message} {','.join([step.value for step in processing_steps])}"
-        self._request(message=message, timeout=timeout)
+        self._request_with_error_check(message=message, timeout=timeout)
 
     def get_averaged_spectra(
         self, timeout: int = REQUEST_TIMEOUT_IN_MS
@@ -606,7 +624,7 @@ class SpektralwerkCore:
         self.set_processing([ProcessingStep.AVERAGE], timeout=timeout)
         return self._spectrum_generator(timeout=timeout)
 
-    def process_request(
+    def process_request_with_error_check(
         self, command: str, timeout: int = REQUEST_TIMEOUT_IN_MS
     ) -> str:
         """
@@ -622,4 +640,4 @@ class SpektralwerkCore:
         Returns:
             raw response of the provided command
         """
-        return self._request(command, timeout=timeout)
+        return self._request_with_error_check(command, timeout=timeout)
