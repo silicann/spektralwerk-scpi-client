@@ -49,7 +49,7 @@ DEVICE_RECONNECTION_DELAY = 0.02
 
 # using the open source pyvisa-py backend since NI-VISA is closed sources
 VISA_BACKEND = "@py"
-REQUEST_TIMEOUT_IN_SEC = 2
+REQUEST_TIMEOUT_IN_SEC = 2.0
 
 
 class SpektralwerkCore:
