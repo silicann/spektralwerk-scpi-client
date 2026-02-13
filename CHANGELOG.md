@@ -2,7 +2,22 @@
 
 All notable changes of the `spektralwerk_scpi_client` will be documented in this file
 
-## [0.x.x] -
+
+## [0.x.x] - 2026-...
+
+### Fixed
+
+- Convert the timeout value for the backend (second value was interpreted as milliseconds)
+
+
+
+## [0.4.1] - 2026-02-13
+
+### Fixed
+
+- Applied type hinting which prevents building
+
+## [0.4.0] - 2026-02-13
 
 ### Added
 
@@ -14,6 +29,7 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 ### Changed
 
 - introduce pydantic BaseModel for Identity
+- use SI base units for the timeout representation (changed from [ms] to [s])
 
 ## [0.3.2] - 2025-10-09
 
