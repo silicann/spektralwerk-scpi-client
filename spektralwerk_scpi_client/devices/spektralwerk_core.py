@@ -49,7 +49,7 @@ DEVICE_RECONNECTION_DELAY = 0.02
 
 # using the open source pyvisa-py backend since NI-VISA is closed sources
 VISA_BACKEND = "@py"
-REQUEST_TIMEOUT_IN_MS = 2000
+REQUEST_TIMEOUT_IN_SEC = 2
 
 
 class SpektralwerkCore:
@@ -65,7 +65,7 @@ class SpektralwerkCore:
         self._host = host
         self._port = port
 
-        self.timeout = REQUEST_TIMEOUT_IN_MS
+        self.timeout = REQUEST_TIMEOUT_IN_SEC
 
         # the Spektralwerk Core uses TCP/IP socket communication
         self._resource = f"TCPIP0::{host}::{port}::SOCKET"
@@ -101,9 +101,9 @@ class SpektralwerkCore:
             """
             try:
                 # Use a short timeout in order to avoid problem escalation.
-                self.timeout = 200
+                self.timeout = 0.2
                 error = self.get_error_message()
-                self.timeout = REQUEST_TIMEOUT_IN_MS
+                self.timeout = REQUEST_TIMEOUT_IN_SEC
             except SpektralwerkError:
                 # The connection is somehow lost forever. Stop asking questions.
                 _logger.debug("SCPI request returned with non-zero status flag")
