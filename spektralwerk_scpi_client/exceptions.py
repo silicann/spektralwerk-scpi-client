@@ -1,3 +1,6 @@
+from spektralwerk_scpi_client.scpi import SCPIErrorMessage
+
+
 class SpektralwerkError(Exception):
     """
     Base class for errors with a Spektralwerk device
@@ -27,9 +30,9 @@ class SpektralwerkResponseError(SpektralwerkError):
     SpektralwerkResponseError
     """
 
-    def __init__(self, command, scpi_error_code: str, scpi_error_message: str):
-        self.scpi_error_code = scpi_error_code
-        self.scpi_error_message = scpi_error_message
+    def __init__(self, command, scpi_error: SCPIErrorMessage):
+        self.scpi_error_code = scpi_error.code
+        self.scpi_error_message = scpi_error.message
         super().__init__(
             f"The command '{command}' lead to '{self.scpi_error_code}'"
             f" - '{self.scpi_error_message}'."

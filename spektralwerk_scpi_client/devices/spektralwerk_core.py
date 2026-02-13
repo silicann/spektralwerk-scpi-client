@@ -93,12 +93,12 @@ class SpektralwerkCore:
                 error = self.get_error_message(timeout=200)
             except SpektralwerkError:
                 # The connection is somehow lost forever. Stop asking questions.
-                _logger.error("SCPI request returned with non-zero status flag")
+                _logger.debug("SCPI request returned with non-zero status flag")
                 raise SpektralwerkResponseError(
                     message,
                     event_status_register,
                 ) from None
-            raise SpektralwerkResponseError(message, error.code, error.message)
+            raise SpektralwerkResponseError(message, error)
         return response
 
     @contextlib.contextmanager
