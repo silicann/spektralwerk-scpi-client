@@ -515,14 +515,16 @@ class SpektralwerkCore:
         )
         self._request_with_error_check(message=message)
 
-    def get_spectra(self) -> typing.Generator[Spectrum, typing.Any]:
+    def get_spectra(
+        self, spectra_count: int = 1
+    ) -> typing.Generator[Spectrum, typing.Any]:
         """
         Obtain raw spectra
 
         Returns:
             incremental delivery of spectra
         """
-        return self._spectrum_generator()
+        return self._spectrum_generator(spectra_count=spectra_count)
 
     def set_processing(
         self,
