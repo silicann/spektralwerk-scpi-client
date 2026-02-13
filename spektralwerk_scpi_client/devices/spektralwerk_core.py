@@ -16,7 +16,9 @@ from spektralwerk_scpi_client.exceptions import (
     SpektralwerkTimeoutError,
 )
 from spektralwerk_scpi_client.scpi import SCPIErrorMessage
-from spektralwerk_scpi_client.scpi.commands import SCPICommand as Scpi
+from spektralwerk_scpi_client.scpi.commands import (
+    SCPICommand as SCPI,  # noqa N814
+)
 from spektralwerk_scpi_client.scpi.mnemonics import OutputFormat, ProcessingStep
 
 _logger = logging.getLogger()
@@ -76,7 +78,7 @@ class SpektralwerkCore:
         """
         # Clear status register before and read it right after the query.
         # This approach is used for checking the success of a query.
-        message_with_esr = f"{Scpi.CLS_COMMAND};{message};{Scpi.ESR_QUERY}"
+        message_with_esr = f"{SCPI.CLS_COMMAND};{message};{SCPI.ESR_QUERY}"
         response_with_esr = resource.query(message_with_esr).rstrip("\r")  # type: ignore
         if self.command_separator in response_with_esr:
             response, event_status_register = response_with_esr.rsplit(
@@ -176,20 +178,20 @@ class SpektralwerkCore:
     ) -> typing.Generator[Spectrum, typing.Any]:
         for query in (
             # infinite number of spectra to retrieve
-            Scpi.MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_COMMAND.with_arguments(
+            SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_COMMAND.with_arguments(
                 0 if spectra_count is None else spectra_count
             ),
             # as fast as possible
-            Scpi.MEASURE_SPECTRUM_REQUEST_CONFIG_FREQUENCY_COMMAND.with_arguments(
+            SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_FREQUENCY_COMMAND.with_arguments(
                 0 if sample_frequency is None else sample_frequency
             ),
-            Scpi.MEASURE_SPECTRUM_REQUEST_CONFIG_FORMAT_COMMAND.with_arguments(
+            SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_FORMAT_COMMAND.with_arguments(
                 output_format
             ),
         ):
             self._request_with_error_check(query)
         for raw_spectrum in self._request_stream(
-            Scpi.MEASURE_SPECTRUM_REQUEST_QUERY, delimiter=b"\0"
+            SCPI.MEASURE_SPECTRUM_REQUEST_QUERY, delimiter=b"\0"
         ):
             decoded_spectrum = cobs.cobs.decode(raw_spectrum)
             pixel_count = (
@@ -216,7 +218,7 @@ class SpektralwerkCore:
             Last occurred error from the SCPI error queue
 
         """
-        message = Scpi.SYSTEM_ERROR_NEXT_QUERY
+        message = SCPI.SYSTEM_ERROR_NEXT_QUERY
         response = self._request_without_error_check(message=message)
         try:
             error_code_string, error_message = response.split(",")
@@ -234,7 +236,7 @@ class SpektralwerkCore:
         Returns:
             Spektralwerk identity
         """
-        message = Scpi.IDN_QUERY
+        message = SCPI.IDN_QUERY
         return self._request_with_error_check(message=message)
 
     def get_spectrometer_peak_count(self) -> int:
@@ -244,7 +246,7 @@ class SpektralwerkCore:
         Returns:
             Maximum spectrometer count value
         """
-        message = Scpi.DEVICE_SPECTROMETER_ARRAY_PEAK_QUERY
+        message = SCPI.DEVICE_SPECTROMETER_ARRAY_PEAK_QUERY
         return int(self._request_with_error_check(message=message))
 
     def get_spectrometer_resolution(self) -> float:
@@ -254,7 +256,7 @@ class SpektralwerkCore:
         Returns:
             Averaged spectrometer resolution
         """
-        message = Scpi.DEVICE_SPECTROMETER_RESOLUTION_QUERY
+        message = SCPI.DEVICE_SPECTROMETER_RESOLUTION_QUERY
         return float(self._request_with_error_check(message=message))
 
     def get_pixels_count(self) -> int:
@@ -264,7 +266,7 @@ class SpektralwerkCore:
         Returns:
             pixel count
         """
-        message = Scpi.DEVICE_SPECTROMETER_ARRAY_PCOUNT_QUERY
+        message = SCPI.DEVICE_SPECTROMETER_ARRAY_PCOUNT_QUERY
         return int(self._request_with_error_check(message=message))
 
     def get_pixel_wavelengths(self) -> list[float]:
@@ -274,7 +276,7 @@ class SpektralwerkCore:
         Returns:
             array with wavelength value for each pixel
         """
-        message = Scpi.DEVICE_SPECTROMETER_PIXELS_WAVELENGTHS_QUERY
+        message = SCPI.DEVICE_SPECTROMETER_PIXELS_WAVELENGTHS_QUERY
         wavelengths = (self._request_with_error_check(message=message)).split(",")
         return [float(wavelength) for wavelength in wavelengths]
 
@@ -285,7 +287,7 @@ class SpektralwerkCore:
         Returns:
             exposure time value
         """
-        message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_QUERY
+        message = SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_QUERY
         response = self._request_with_error_check(message=message)
         return float(response)
 
@@ -296,7 +298,7 @@ class SpektralwerkCore:
         Args:
             exposure time in µs
         """
-        message = f"{Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_COMMAND} {exposure_time}"
+        message = f"{SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_COMMAND} {exposure_time}"
         self._request_with_error_check(message=message)
 
     def get_exposure_time_unit(self) -> str:
@@ -306,7 +308,7 @@ class SpektralwerkCore:
         Returns:
             unit of the exposure time
         """
-        message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_UNIT_QUERY
+        message = SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_UNIT_QUERY
         return self._request_with_error_check(message=message)
 
     def get_exposure_time_max(self) -> float:
@@ -316,7 +318,7 @@ class SpektralwerkCore:
         Returns:
             bare maximum exposure time value
         """
-        message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_MAX_QUERY
+        message = SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_MAX_QUERY
         response = self._request_with_error_check(message=message)
         return float(response)
 
@@ -327,7 +329,7 @@ class SpektralwerkCore:
         Returns:
             bare minimum exposure time value
         """
-        message = Scpi.MEASURE_SPECTRUM_EXPOSURE_TIME_MIN_QUERY
+        message = SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_MIN_QUERY
         response = self._request_with_error_check(message=message)
         return float(response)
 
@@ -338,7 +340,7 @@ class SpektralwerkCore:
         Returns:
             current value for number of averaged spectra
         """
-        message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_QUERY
+        message = SCPI.MEASURE_SPECTRUM_AVERAGE_NUMBER_QUERY
         response = self._request_with_error_check(message=message)
         return int(response)
 
@@ -350,7 +352,7 @@ class SpektralwerkCore:
             number_of_spectra: number of spectra used for the rolling average
 
         """
-        message = f"{Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_COMMAND} {number_of_spectra}"
+        message = f"{SCPI.MEASURE_SPECTRUM_AVERAGE_NUMBER_COMMAND} {number_of_spectra}"
         self._request_with_error_check(message=message)
 
     def get_average_number_max(self) -> int:
@@ -360,7 +362,7 @@ class SpektralwerkCore:
         Returns:
             maximum value for number of averaged spectra
         """
-        message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_MAX_QUERY
+        message = SCPI.MEASURE_SPECTRUM_AVERAGE_NUMBER_MAX_QUERY
         response = self._request_with_error_check(message=message)
         return int(response)
 
@@ -371,7 +373,7 @@ class SpektralwerkCore:
         Returns:
             minimum value for number of averaged spectra
         """
-        message = Scpi.MEASURE_SPECTRUM_AVERAGE_NUMBER_MIN_QUERY
+        message = SCPI.MEASURE_SPECTRUM_AVERAGE_NUMBER_MIN_QUERY
         response = self._request_with_error_check(message=message)
         return int(response)
 
@@ -382,7 +384,7 @@ class SpektralwerkCore:
         Returns:
             current value for spectrometer pixel offset voltage
         """
-        message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_QUERY
+        message = SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_QUERY
         response = self._request_with_error_check(message=message)
         return float(response)
 
@@ -393,7 +395,7 @@ class SpektralwerkCore:
         Args:
             offset_voltage in mV
         """
-        message = f"{Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_COMMAND} {offset_voltage}"
+        message = f"{SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_COMMAND} {offset_voltage}"
         self._request_with_error_check(message=message)
 
     def get_offset_voltag_unit(self) -> str:
@@ -403,7 +405,7 @@ class SpektralwerkCore:
         Returns:
             unit of the offset voltage
         """
-        message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_UNIT_QUERY
+        message = SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_UNIT_QUERY
         return self._request_with_error_check(message=message)
 
     def get_offset_voltage_max(self) -> float:
@@ -413,7 +415,7 @@ class SpektralwerkCore:
         Returns:
             maximum value for spectrometer pixel offset voltage
         """
-        message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MAX_QUERY
+        message = SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MAX_QUERY
         response = self._request_with_error_check(message=message)
         return float(response)
 
@@ -424,7 +426,7 @@ class SpektralwerkCore:
         Returns:
             minimum value for spectrometer pixel offset voltage
         """
-        message = Scpi.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MIN_QUERY
+        message = SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MIN_QUERY
         response = self._request_with_error_check(message=message)
         return float(response)
 
@@ -435,7 +437,7 @@ class SpektralwerkCore:
         Returns:
             current dark reference spectrum
         """
-        message = Scpi.MEASURE_SPECTRUM_REFERENCE_DARK_QUERY
+        message = SCPI.MEASURE_SPECTRUM_REFERENCE_DARK_QUERY
         dark_reference = self._request_with_error_check(message=message).split(",")
         return [float(value) for value in dark_reference]
 
@@ -451,7 +453,7 @@ class SpektralwerkCore:
                 spectrum. If no value is provided, the currently set value of
                 `MEASure:SPECtrum:AVERage:NUMBer` is used. Default: None
         """
-        message = f"{Scpi.MEASURE_SPECTRUM_REFERENCE_DARK_ACQUIRE_COMMAND}"
+        message = f"{SCPI.MEASURE_SPECTRUM_REFERENCE_DARK_ACQUIRE_COMMAND}"
         if average_number:
             message = f"{message} {average_number}"
         self._request_with_error_check(message=message)
@@ -467,7 +469,7 @@ class SpektralwerkCore:
                 spectrum.
         """
         message = (
-            f"{Scpi.MEASURE_SPECTRUM_REFERENCE_DARK_SET_COMMAND} {reference_spectrum}"
+            f"{SCPI.MEASURE_SPECTRUM_REFERENCE_DARK_SET_COMMAND} {reference_spectrum}"
         )
         self._request_with_error_check(message=message)
 
@@ -478,7 +480,7 @@ class SpektralwerkCore:
         Returns:
             current light reference spectrum
         """
-        message = Scpi.MEASURE_SPECTRUM_REFERENCE_LIGHT_QUERY
+        message = SCPI.MEASURE_SPECTRUM_REFERENCE_LIGHT_QUERY
         light_refernce = self._request_with_error_check(message=message).split(",")
         return [float(value) for value in light_refernce]
 
@@ -494,7 +496,7 @@ class SpektralwerkCore:
                 spectrum. If no value is provided, the currently set value of
                 `MEASure:SPECtrum:AVERage:NUMBer` is used. Default: None
         """
-        message = f"{Scpi.MEASURE_SPECTRUM_REFERENCE_LIGHT_ACQUIRE_COMMAND}"
+        message = f"{SCPI.MEASURE_SPECTRUM_REFERENCE_LIGHT_ACQUIRE_COMMAND}"
         if average_number:
             message = f"{message} {average_number}"
         self._request_with_error_check(message=message)
@@ -509,7 +511,7 @@ class SpektralwerkCore:
             reference_spectrum: list of spectral intensities which is used as a light reference spectrum.
         """
         message = (
-            f"{Scpi.MEASURE_SPECTRUM_REFERENCE_LIGHT_SET_COMMAND} {reference_spectrum}"
+            f"{SCPI.MEASURE_SPECTRUM_REFERENCE_LIGHT_SET_COMMAND} {reference_spectrum}"
         )
         self._request_with_error_check(message=message)
 
@@ -533,7 +535,7 @@ class SpektralwerkCore:
             processing_steps: list of processing steps. If `None` is passed, the currently valid
                 processing steps will be removed.
         """
-        message = f"{Scpi.MEASURE_SPECTRUM_REQUEST_CONFIG_PROCESSING_COMMAND}"
+        message = f"{SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_PROCESSING_COMMAND}"
 
         if processing_steps:
             message = f"{message} {','.join([step.value for step in processing_steps])}"
