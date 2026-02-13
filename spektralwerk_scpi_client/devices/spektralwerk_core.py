@@ -60,10 +60,13 @@ class SpektralwerkCore:
         self._resource = f"TCPIP0::{host}::{port}::SOCKET"
 
         # wait a bit between two requests
-        self._wait_until_next_connection_time = 0
+        self._wait_until_next_connection_time = 0.0
 
-    def _request_handler_with_error_check(self, resource: pyvisa.Resource, message: str) -> str:
-        """ Embed the SCPI message within "*CLS" and "*ESR?" in order to check its success
+    def _request_handler_with_error_check(
+        self, resource: pyvisa.Resource, message: str
+    ) -> str:
+        """
+        Embed the SCPI message within "*CLS" and "*ESR?" in order to check its success
 
         Checking the success of a SCPI query requires a look into the status register (`*ESR?`).
         In order to recover from earlier errors, we need to discard potentially existing status
@@ -82,25 +85,28 @@ class SpektralwerkCore:
         # Any value different than "0" indicates a SCPI error.
         if event_status_register != "0":
             """
-            We cannot re-use the current session for error retrieval, since we indicated the
+            We cannot reuse the current session for error retrieval, since we indicated the
             connection to be closed (the line termination was sent above).
             """
             try:
                 # Use a short timeout in order to avoid problem escalation.
-                error = self.get_error_message(timeout=0.2)
+                error = self.get_error_message(timeout=200)
             except SpektralwerkError:
                 # The connection is somehow lost forever. Stop asking questions.
+                _logger.error("SCPI request returned with non-zero status flag")
                 raise SpektralwerkResponseError(
                     message,
                     event_status_register,
-                    "SCPI request returned with non-zero status flag",
                 ) from None
             raise SpektralwerkResponseError(message, error.code, error.message)
         return response
 
     @contextlib.contextmanager
-    def get_session(self, timeout: int) -> pyvisa.resources.Resource:
-        """ Create a session context for reading and writing.
+    def get_session(
+        self, timeout: int
+    ) -> typing.Generator[pyvisa.Resource, None, None]:
+        """
+        Create a session context for reading and writing.
 
         Use `session.query` for typical write/read combinations.
         Use `session.write` and session.read` for raw communication handling.
@@ -129,7 +135,9 @@ class SpektralwerkCore:
                         raise SpektralwerkTimeoutError from exc
                     raise
                 session.close()
-                self._wait_until_next_connection_time = time.monotonic() + DEVICE_RECONNECTION_DELAY
+                self._wait_until_next_connection_time = (
+                    time.monotonic() + DEVICE_RECONNECTION_DELAY
+                )
         except ConnectionRefusedError as exc:
             raise SpektralwerkConnectionError(self._host, self._port) from exc
 
@@ -154,7 +162,7 @@ class SpektralwerkCore:
     def _request_without_error_check(self, message: str, timeout: int) -> str:
         _logger.debug("Query sent (without error checks): %s", message)
         with self.get_session(timeout) as session:
-            response = session.query(message)
+            response = session.query(message)  # type: ignore
             _logger.debug("Response received (without error checks): %s", response)
             return response
 
@@ -197,7 +205,23 @@ class SpektralwerkCore:
                 [float(value) for value in spectral_data],
             )
 
-    def get_error_message(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> SCPIErrorMessage:
+    def get_error_message(
+        self, timeout: int = REQUEST_TIMEOUT_IN_MS
+    ) -> SCPIErrorMessage:
+        """
+        Request the last error message from the SCPI error queue
+
+        The last entry from the error queue is removed from the error queue and returned
+        to the requester. If no error occurred (the error queue is empty)
+        `0, "No Error"` is returned.
+
+        Args:
+            timeout: timeout [ms] for error request. Default: REQUEST_TIMEOUT_IN_MS
+
+        Returns:
+            Last occurred error from the SCPI error queue
+
+        """
         message = Scpi.SYSTEM_ERROR_NEXT_QUERY
         response = self._request_without_error_check(message=message, timeout=timeout)
         try:
@@ -276,7 +300,9 @@ class SpektralwerkCore:
             array with wavelength value for each pixel
         """
         message = Scpi.DEVICE_SPECTROMETER_PIXELS_WAVELENGTHS_QUERY
-        wavelengths = (self._request_with_error_check(message=message, timeout=timeout)).split(",")
+        wavelengths = (
+            self._request_with_error_check(message=message, timeout=timeout)
+        ).split(",")
         return [float(wavelength) for wavelength in wavelengths]
 
     def get_exposure_time(self, timeout: int = REQUEST_TIMEOUT_IN_MS) -> float:
@@ -484,7 +510,9 @@ class SpektralwerkCore:
             current dark reference spectrum
         """
         message = Scpi.MEASURE_SPECTRUM_REFERENCE_DARK_QUERY
-        dark_reference = self._request_with_error_check(message=message, timeout=timeout).split(",")
+        dark_reference = self._request_with_error_check(
+            message=message, timeout=timeout
+        ).split(",")
         return [float(value) for value in dark_reference]
 
     def acquire_dark_reference(
@@ -536,7 +564,9 @@ class SpektralwerkCore:
             current light reference spectrum
         """
         message = Scpi.MEASURE_SPECTRUM_REFERENCE_LIGHT_QUERY
-        light_refernce = self._request_with_error_check(message=message, timeout=timeout).split(",")
+        light_refernce = self._request_with_error_check(
+            message=message, timeout=timeout
+        ).split(",")
         return [float(value) for value in light_refernce]
 
     def acquire_light_reference(
