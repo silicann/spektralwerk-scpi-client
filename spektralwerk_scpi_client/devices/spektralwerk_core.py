@@ -313,7 +313,9 @@ class SpektralwerkCore:
         Args:
             exposure time in µs
         """
-        message = f"{SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_COMMAND} {exposure_time}"
+        message = SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_COMMAND.with_arguments(
+            exposure_time
+        )
         self._request_with_error_check(message=message)
 
     def get_exposure_time_unit(self) -> str:
@@ -367,7 +369,9 @@ class SpektralwerkCore:
             number_of_spectra: number of spectra used for the rolling average
 
         """
-        message = f"{SCPI.MEASURE_SPECTRUM_AVERAGE_NUMBER_COMMAND} {number_of_spectra}"
+        message = SCPI.MEASURE_SPECTRUM_AVERAGE_NUMBER_COMMAND.with_arguments(
+            number_of_spectra
+        )
         self._request_with_error_check(message=message)
 
     def get_average_number_max(self) -> int:
@@ -410,7 +414,11 @@ class SpektralwerkCore:
         Args:
             offset_voltage in mV
         """
-        message = f"{SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_COMMAND} {offset_voltage}"
+        message = (
+            SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_COMMAND.with_arguments(
+                offset_voltage
+            )
+        )
         self._request_with_error_check(message=message)
 
     def get_offset_voltag_unit(self) -> str:
@@ -468,9 +476,9 @@ class SpektralwerkCore:
                 spectrum. If no value is provided, the currently set value of
                 `MEASure:SPECtrum:AVERage:NUMBer` is used. Default: None
         """
-        message = f"{SCPI.MEASURE_SPECTRUM_REFERENCE_DARK_ACQUIRE_COMMAND}"
-        if average_number:
-            message = f"{message} {average_number}"
+        message = SCPI.MEASURE_SPECTRUM_REFERENCE_DARK_ACQUIRE_COMMAND.with_arguments(
+            average_number if average_number else ""
+        )
         self._request_with_error_check(message=message)
 
     def set_dark_reference(self, reference_spectrum: list[float]) -> None:
@@ -483,8 +491,8 @@ class SpektralwerkCore:
             reference_spectrum: list of spectral intensities which is used as a dark reference
                 spectrum.
         """
-        message = (
-            f"{SCPI.MEASURE_SPECTRUM_REFERENCE_DARK_SET_COMMAND} {reference_spectrum}"
+        message = SCPI.MEASURE_SPECTRUM_REFERENCE_DARK_SET_COMMAND.with_arguments(
+            reference_spectrum
         )
         self._request_with_error_check(message=message)
 
@@ -511,9 +519,9 @@ class SpektralwerkCore:
                 spectrum. If no value is provided, the currently set value of
                 `MEASure:SPECtrum:AVERage:NUMBer` is used. Default: None
         """
-        message = f"{SCPI.MEASURE_SPECTRUM_REFERENCE_LIGHT_ACQUIRE_COMMAND}"
-        if average_number:
-            message = f"{message} {average_number}"
+        message = SCPI.MEASURE_SPECTRUM_REFERENCE_LIGHT_ACQUIRE_COMMAND.with_arguments(
+            average_number if average_number else ""
+        )
         self._request_with_error_check(message=message)
 
     def set_light_reference(self, reference_spectrum: list[float]) -> None:
@@ -525,8 +533,8 @@ class SpektralwerkCore:
         Args:
             reference_spectrum: list of spectral intensities which is used as a light reference spectrum.
         """
-        message = (
-            f"{SCPI.MEASURE_SPECTRUM_REFERENCE_LIGHT_SET_COMMAND} {reference_spectrum}"
+        message = SCPI.MEASURE_SPECTRUM_REFERENCE_LIGHT_SET_COMMAND.with_arguments(
+            reference_spectrum
         )
         self._request_with_error_check(message=message)
 
@@ -582,7 +590,8 @@ class SpektralwerkCore:
         """
         message = f"{SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_ROI_QUERY}"
         try:
-            roi = ROI(*self._request_with_error_check(message=message).split(","))
+            roi_str = self._request_with_error_check(message=message).split(",")
+            roi = ROI(*[int(value) for value in roi_str])
         except TypeError as exc:
             raise SpektralwerkUnexpectedResponseError from exc
         return roi

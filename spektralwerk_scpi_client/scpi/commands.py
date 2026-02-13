@@ -83,7 +83,7 @@ class SCPICommand(enum.StrEnum):
     MEASURE_SPECTRUM_REQUEST_CONFIG_ROI_QUERY = "MEASure:SPECtrum:REQuest:CONFig:ROI?"
     MEASURE_SPECTRUM_SAMPLE_RAW_AVERAGED_QUERY = "MEASure:SPECtrum:SAMPle:RAW:AVERaged?"
 
-    def with_arguments(self, *args: str | float | None) -> str:
+    def with_arguments(self, *args: str | float | list[float] | None) -> str:
         """Assemble a query with arguments"""
         args_string = ",".join(str(item) for item in args)
         if args_string:
