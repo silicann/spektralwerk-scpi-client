@@ -5,11 +5,13 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 
 ## [0.x.x] - 2026-...
 
+### Added
+
+- A with-context was introduced to apply a clear structure for changing the timeout for a single action
+
 ### Fixed
 
 - Convert the timeout value for the backend (second value was interpreted as milliseconds)
-
-
 
 ## [0.4.1] - 2026-02-13
 

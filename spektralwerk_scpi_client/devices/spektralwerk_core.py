@@ -102,8 +102,8 @@ class SpektralwerkCore:
             try:
                 # Use a short timeout in order to avoid problem escalation.
                 self.timeout = 0.2
-                error = self.get_error_message()
-                self.timeout = REQUEST_TIMEOUT_IN_SEC
+                with self.apply_temporary_timeout(0.2):
+                    error = self.get_error_message()
             except SpektralwerkError:
                 # The connection is somehow lost forever. Stop asking questions.
                 _logger.debug("SCPI request returned with non-zero status flag")
@@ -135,7 +135,9 @@ class SpektralwerkCore:
                 read_termination=self.read_termination,
                 write_termination=self.write_termination,
             ) as session:
-                session.timeout = self.timeout
+                # pyvisa timeout is always in [ms]. Thus, the SpektralwerkCore timeout
+                # has to be converted from [s] to [ms]
+                session.timeout = self.timeout * 1000
                 session.clear()
                 try:
                     yield session
@@ -151,6 +153,19 @@ class SpektralwerkCore:
                 )
         except ConnectionRefusedError as exc:
             raise SpektralwerkConnectionError(self._host, self._port) from exc
+
+    @contextlib.contextmanager
+    def apply_temporary_timeout(self, timeout):
+        """
+        Create a context with a different timeout than the default timeout.
+
+        Within the context the provided timeout is applied. The previous value is
+        restored afterwards.
+        """
+        old_timeout = self.timeout
+        self.timeout = timeout
+        yield
+        self.timeout = old_timeout
 
     def _request_stream(self, message: str, delimiter: bytes) -> typing.Generator[str]:
         _logger.debug("Stream Query sent: %s", message)
