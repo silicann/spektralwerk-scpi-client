@@ -554,7 +554,7 @@ class SpektralwerkCore:
         self._request_with_error_check(message=message)
 
     def get_spectra(
-        self, spectra_count: int = 1
+        self, spectra_count: int | None = None
     ) -> typing.Generator[Spectrum, typing.Any]:
         """
         Obtain raw spectra

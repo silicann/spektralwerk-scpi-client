@@ -12,6 +12,7 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 ### Fixed
 
 - Convert the timeout value for the backend (second value was interpreted as milliseconds)
+- Upon requesting a stream, an infionite number of spectra is returned and not only one spectra (the previous default value)
 
 ## [0.4.1] - 2026-02-13
 
