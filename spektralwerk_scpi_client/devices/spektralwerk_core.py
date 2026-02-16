@@ -212,8 +212,9 @@ class SpektralwerkCore:
             ),
         ):
             self._request_with_error_check(query)
-        for raw_spectrum in self._request_stream(
-            SCPI.MEASURE_SPECTRUM_REQUEST_QUERY, delimiter=b"\0"
+        for emitted_count, raw_spectrum in enumerate(
+            self._request_stream(SCPI.MEASURE_SPECTRUM_REQUEST_QUERY, delimiter=b"\0"),
+            start=1,
         ):
             decoded_spectrum = cobs.cobs.decode(raw_spectrum)
             pixel_count = (
@@ -227,6 +228,8 @@ class SpektralwerkCore:
                 float(timestamp_musec / 1_000_000),
                 [float(value) for value in spectral_data],
             )
+            if spectra_count and emitted_count >= spectra_count:
+                break
 
     def get_error_message(self) -> SCPIErrorMessage:
         """
