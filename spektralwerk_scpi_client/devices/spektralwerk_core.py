@@ -196,7 +196,7 @@ class SpektralwerkCore:
         spectra_count: int | None = None,
         sample_frequency: float | None = None,
         format_timestamp: str = "Q",
-        format_pixel: str = "h",
+        format_pixel: str = "H",
     ) -> typing.Generator[Spectrum, typing.Any]:
         for query in (
             # infinite number of spectra to retrieve
