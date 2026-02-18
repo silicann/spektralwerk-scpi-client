@@ -101,7 +101,6 @@ class SpektralwerkCore:
             """
             try:
                 # Use a short timeout in order to avoid problem escalation.
-                self.timeout = 0.2
                 with self.apply_temporary_timeout(0.2):
                     error = self.get_error_message()
             except SpektralwerkError:
