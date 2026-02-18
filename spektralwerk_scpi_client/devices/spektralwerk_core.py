@@ -144,7 +144,8 @@ class SpektralwerkCore:
                     # pyvisa raises unspecific exceptions which contain a status code with the
                     # precise error description.
                     if str(pyvisa.constants.StatusCode.error_timeout) in str(exc):
-                        raise SpektralwerkTimeoutError("Connection lost")
+                        error_message = "Connection lost."
+                        raise SpektralwerkTimeoutError(error_message) from None
                     raise
                 session.close()
                 self._wait_until_next_connection_time = (
