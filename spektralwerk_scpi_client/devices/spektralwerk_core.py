@@ -556,6 +556,23 @@ class SpektralwerkCore:
         )
         self._request_with_error_check(message=message)
 
+    def get_raw_spectrum(self) -> Spectrum:
+        """
+        Get a single raw spectrum
+
+        The raw spectrum is not influenced by additional configurations.
+
+        Returns:
+            single raw spectrum
+        """
+        response = self._request_with_error_check(
+            message=SCPI.MEASURE_SPECTRUM_REQUEST_RAW_QUERY
+        )
+        [timestamp, *data] = response.split(",")
+        return Spectrum(
+            timestamp_sec=float(timestamp), data=[float(value) for value in data]
+        )
+
     def get_spectra(
         self, spectra_count: int | None = None
     ) -> typing.Generator[Spectrum, typing.Any]:

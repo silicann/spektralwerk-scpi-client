@@ -8,6 +8,7 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 ### Added
 
 - A with-context was introduced to apply a clear structure for changing the timeout for a single action
+- function to request a single raw spectrum
 
 ### Fixed
 
