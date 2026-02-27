@@ -1,6 +1,6 @@
 from spektralwerk_scpi_client.devices.spektralwerk_core import (
-    SpektralwerkCore,
     Spectrum,
+    SpektralwerkCore,
 )
 
-__all__ = ["SpektralwerkCore", "Spectrum"]
+__all__ = ["Spectrum", "SpektralwerkCore"]

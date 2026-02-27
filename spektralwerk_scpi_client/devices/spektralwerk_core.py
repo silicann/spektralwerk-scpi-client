@@ -194,7 +194,6 @@ class SpektralwerkCore:
         self,
         output_format: OutputFormat | None = OutputFormat.COBS_INT16,
         spectra_count: int | None = None,
-        sample_frequency: float | None = None,
         format_timestamp: str = "Q",
         format_pixel: str = "H",
     ) -> typing.Generator[Spectrum, typing.Any]:
@@ -202,10 +201,6 @@ class SpektralwerkCore:
             # infinite number of spectra to retrieve
             SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_COMMAND.with_arguments(
                 0 if spectra_count is None else spectra_count
-            ),
-            # as fast as possible
-            SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_FREQUENCY_COMMAND.with_arguments(
-                0 if sample_frequency is None else sample_frequency
             ),
             SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_FORMAT_COMMAND.with_arguments(
                 output_format
@@ -577,7 +572,7 @@ class SpektralwerkCore:
         self, spectra_count: int | None = None
     ) -> typing.Generator[Spectrum, typing.Any]:
         """
-        Obtain raw spectra
+        Obtain spectra
 
         Returns:
             incremental delivery of spectra
@@ -592,8 +587,8 @@ class SpektralwerkCore:
         Set processing steps for requesting spectral sample
 
         Args:
-            processing_steps: list of processing steps. If `None` is passed, the currently valid
-                processing steps will be removed.
+            processing_steps: list of processing steps. If `None` is passed, the
+                currently valid processing steps will be removed.
         """
         message = f"{SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_PROCESSING_COMMAND}"
 
@@ -602,12 +597,22 @@ class SpektralwerkCore:
         self._request_with_error_check(message=message)
 
     def get_request_count(self) -> int:
+        """
+        Obtain the current configured number of streamed spectra
+
+        Returns:
+            configured number of counts. A value of `0` will lead to an infinite stream.
+        """
         message = f"{SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_QUERY}"
         return int(self._request_with_error_check(message=message))
 
     def set_request_count(self, count: int) -> None:
         """
         Set the number of spectra to obtain from a single call
+
+        Args:
+            count: the number of spectra which should be returned upon calling `MEASure
+                :SPECtrum:REQuest?`
         """
         message = SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_COMMAND.with_arguments(
             count
@@ -616,9 +621,10 @@ class SpektralwerkCore:
 
     def get_request_roi(self) -> tuple[int, int]:
         """
-        Obtain the region-of-interest
+        Obtain the currend configured region-of-interest
 
-        The region-of-interest limits the spectral output to the provided pixel range.
+        The region-of-interest limits the spectral output to the provided pixel range
+        when requesting spectra with `MEASure:SPECtrum:REQuest?`
 
         Returns:
             region-of-interest
@@ -632,7 +638,16 @@ class SpektralwerkCore:
         return roi
 
     def set_request_roi(self, roi: tuple[int, int]) -> None:
-        message = f"{SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_ROI_COMMAND} {','.join(str(pixel) for pixel in roi)}"
+        """
+        Set the region-of-interest
+
+        Args:
+            roi: a tuple containing the start and end pixel number for restricting the
+                returned spectra.
+        """
+        message = SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_ROI_COMMAND.with_arguments(
+            ",".join(str(pixel) for pixel in roi)
+        )
         self._request_with_error_check(message=message)
 
     def get_averaged_spectra(
