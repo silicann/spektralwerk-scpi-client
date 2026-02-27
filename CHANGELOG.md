@@ -10,6 +10,7 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 - A with-context was introduced to apply a clear structure for changing the timeout for a single action
 - function to request a single raw spectrum
 - `Spectrum` class is additionally exported from `device` level
+- function to request a single spectrum with the request configuration applied
 
 ### Fixed
 

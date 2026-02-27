@@ -568,6 +568,17 @@ class SpektralwerkCore:
             timestamp_sec=float(timestamp), data=[float(value) for value in data]
         )
 
+    def get_spectrum(self) -> Spectrum:
+        """
+        Obtain a single spectrum
+
+        Request configurations are applied and will effect the returned spectrum.
+
+        Returns:
+            a single spectrum
+        """
+        return next(self._spectrum_generator(spectra_count=1))
+
     def get_spectra(
         self, spectra_count: int | None = None
     ) -> typing.Generator[Spectrum, typing.Any]:

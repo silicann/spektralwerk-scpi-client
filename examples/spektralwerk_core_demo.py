@@ -9,6 +9,7 @@ The default IP is `127.0.0.1` (localhost) and the default port is `5025`.
 """
 
 from spektralwerk_scpi_client.devices import SpektralwerkCore
+from spektralwerk_scpi_client.exceptions import SpektralwerkError
 
 DEFAULT_HOST: str = "127.0.0.1"
 DEFAULT_PORT: str = "5025"
@@ -39,33 +40,36 @@ def main(host, port):
 
     # retrieve 10 single raw spectra
     number_sample_spectra = 10
-    spectra = []
+    raw_spectra = []
     for spectra_count in range(number_sample_spectra):
-        spectrum = next(spw_core.get_spectra())
+        spectrum = spw_core.get_raw_spectrum()
+        raw_spectra.append(spectrum)
         print(f"{spectra_count + 1}. spectrum:\n{spectrum}")
-        spectra.append(spectrum)
-    print(f"received {len(spectra)} spectra")
+    print(f"received {len(raw_spectra)} spectra")
 
     # "stream" 100 raw spectra
-    number_of_streamed_spectra = 10
-    counter = 1
-    for spectrum in spw_core.get_spectra():
-        if counter > number_of_streamed_spectra:
-            break
-        print(f"{counter}:\n{spectrum}\n")
-        counter += 1
+    number_of_streamed_spectra = 100
+    for current_index, spectrum in enumerate(
+        spw_core.get_spectra(number_of_streamed_spectra)
+    ):
+        print(f"{current_index}:\n{spectrum}\n")
 
     # change timeout for a single command
     spw_core.set_exposure_time(1.0)
     spw_core.set_average_number(20)
     print("Stay calm, this might take some seconds.")
-    print(f"{next(spw_core.get_averaged_spectra(timeout=25000))}")
+    with spw_core.apply_temporary_timeout(25):
+        print(list(spw_core.get_averaged_spectra()))
 
 
 if __name__ == "__main__":
     import os
+    import sys
 
     SPW_HOST = os.getenv("SPW_HOST", DEFAULT_HOST)
     SPW_PORT = os.getenv("SPW_PORT", DEFAULT_PORT)
 
-    main(SPW_HOST, int(SPW_PORT))
+    try:
+        main(SPW_HOST, int(SPW_PORT))
+    except SpektralwerkError as exc:
+        print(f"Spektralwerk exception: {exc}", file=sys.stderr)
