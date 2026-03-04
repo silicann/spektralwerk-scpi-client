@@ -106,10 +106,7 @@ class SpektralwerkCore:
             except SpektralwerkError:
                 # The connection is somehow lost forever. Stop asking questions.
                 _logger.debug("SCPI request returned with non-zero status flag")
-                raise SpektralwerkResponseError(
-                    message,
-                    event_status_register,
-                ) from None
+                raise SpektralwerkConnectionError(self._host, self._port) from None
             raise SpektralwerkResponseError(message, error)
         return response
 
