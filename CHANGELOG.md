@@ -3,7 +3,7 @@
 All notable changes of the `spektralwerk_scpi_client` will be documented in this file
 
 
-## [0.x.x] - 2026-...
+## [0.4.2] - 2026-03-04
 
 ### Added
 
