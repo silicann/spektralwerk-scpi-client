@@ -171,7 +171,11 @@ class SpektralwerkCore:
             with session.read_termination_context(delimiter):  # type: ignore[attr-defined]
                 while True:
                     response = session.read_raw()  # type: ignore[attr-defined]
-                    yield response.rstrip(delimiter)
+                    raw_response = response.rstrip(delimiter)
+                    # handle empty responses
+                    if not raw_response:
+                        continue
+                    yield raw_response
 
     def _request_with_error_check(self, message: str) -> str:
         _logger.debug("Query sent: %s", message)

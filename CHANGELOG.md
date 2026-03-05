@@ -3,6 +3,13 @@
 All notable changes of the `spektralwerk_scpi_client` will be documented in this file
 
 
+## [0.x.x] - 2026-...
+
+### Fixed
+
+- Tolerate empty records in a stream response. There are used as heartbeat messages for keeping the TCP connection alive.
+
+
 ## [0.4.2] - 2026-03-04
 
 ### Added
