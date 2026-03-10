@@ -9,7 +9,7 @@ import typing
 import cobs.cobs
 import pyvisa
 
-from spektralwerk_scpi_client.devices.models import Identity
+from spektralwerk_scpi_client.devices.models import Identity, Spectrum
 from spektralwerk_scpi_client.exceptions import (
     SpektralwerkConnectionError,
     SpektralwerkError,
@@ -24,18 +24,6 @@ from spektralwerk_scpi_client.scpi.commands import (
 from spektralwerk_scpi_client.scpi.mnemonics import OutputFormat, ProcessingStep
 
 _logger = logging.getLogger()
-
-
-class Spectrum(typing.NamedTuple):
-    """
-    Basic spectrum class
-
-    A spectrum consists of a timestamp in [s] and list of floats containing the spectral
-    intensities.
-    """
-
-    timestamp_sec: float
-    data: list[float]
 
 
 class ROI(typing.NamedTuple):
