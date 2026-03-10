@@ -22,6 +22,7 @@ from spektralwerk_scpi_client.scpi.commands import (
     SCPICommand as SCPI,  # noqa N814
 )
 from spektralwerk_scpi_client.scpi.mnemonics import OutputFormat, ProcessingStep
+from spektralwerk_scpi_client.utils.convert import decoded_spectrum
 
 _logger = logging.getLogger()
 
@@ -552,10 +553,7 @@ class SpektralwerkCore:
         response = self._request_with_error_check(
             message=SCPI.MEASURE_SPECTRUM_REQUEST_RAW_QUERY
         )
-        [timestamp, *data] = response.split(",")
-        return Spectrum(
-            timestamp_sec=float(timestamp), data=[float(value) for value in data]
-        )
+        return decoded_spectrum(response)
 
     def get_spectrum(self) -> Spectrum:
         """

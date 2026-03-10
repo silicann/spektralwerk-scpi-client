@@ -1,4 +1,5 @@
 import enum
+import typing
 
 
 class ProcessingStep(enum.StrEnum):
@@ -10,3 +11,11 @@ class OutputFormat(enum.StrEnum):
     BASE64_INT16 = "base64_int16"
     BASE64_FLOAT = "base64_float"
     COBS_INT16 = "cobs_int16"
+
+
+class Format(typing.NamedTuple):
+    timestamp_format: str
+    pixel_format: str
+
+
+COBS_INT16_FORMAT = Format("Q", "H")

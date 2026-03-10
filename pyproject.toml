@@ -7,7 +7,7 @@ name = "spektralwerk_scpi_client"
 version = "0.4.2"
 description = "Spektralwerk SCPI communication library"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
 keywords = ["Spektralwerk", "SCPI"]
