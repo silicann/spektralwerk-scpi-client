@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import contextlib
 import logging
-import struct
 import time
 import typing
 
-import cobs.cobs
 import pyvisa
 
 from spektralwerk_scpi_client.devices.models import Identity, Spectrum
@@ -185,36 +183,28 @@ class SpektralwerkCore:
 
     def _spectrum_generator(
         self,
-        output_format: OutputFormat | None = OutputFormat.COBS_INT16,
         spectra_count: int | None = None,
-        format_timestamp: str = "Q",
-        format_pixel: str = "H",
+        output_format: OutputFormat | None = OutputFormat.COBS_INT16,
     ) -> typing.Generator[Spectrum, typing.Any]:
+        # apply configurations
+        # if nothing is specified, an infinite stream cobs encoded is started
         for query in (
             SCPI.MEASURE_SPECTRUM_CONFIG_COUNT_COMMAND.with_arguments(
                 spectra_count if spectra_count else 0
             ),
-            SCPI.MEASURE_SPECTRUM_CONFIG_FORMAT_COMMAND.with_arguments(
-                output_format
-            ),
+            SCPI.MEASURE_SPECTRUM_CONFIG_FORMAT_COMMAND.with_arguments(output_format),
         ):
             self._request_with_error_check(query)
+        # cobs uses b"\0" for separating responses, while other formats use b"\n"
+        delimiter = b"\0" if output_format is OutputFormat.COBS_INT16 else b"\n"
         for emitted_count, raw_spectrum in enumerate(
-            self._request_stream(SCPI.MEASURE_SPECTRUM_REQUEST_QUERY, delimiter=b"\0"),
+            self._request_stream(
+                SCPI.MEASURE_SPECTRUM_REQUEST_QUERY, delimiter=delimiter
+            ),
             start=1,
         ):
-            decoded_spectrum = cobs.cobs.decode(raw_spectrum)
-            pixel_count = (
-                len(decoded_spectrum) - struct.calcsize(format_timestamp)
-            ) // struct.calcsize(format_pixel)
-            unpack_format = f"<{format_timestamp}{pixel_count}{format_pixel}"
-            [timestamp_musec, *spectral_data] = struct.unpack(
-                unpack_format, decoded_spectrum
-            )
-            yield Spectrum(
-                float(timestamp_musec / 1_000_000),
-                [float(value) for value in spectral_data],
-            )
+            spectrum = decoded_spectrum(raw_spectrum, output_format)
+            yield spectrum
             if spectra_count and emitted_count >= spectra_count:
                 break
 
@@ -569,7 +559,9 @@ class SpektralwerkCore:
         return next(self._spectrum_generator(spectra_count=1))
 
     def get_spectra(
-        self, spectra_count: int | None = None
+        self,
+        spectra_count: int | None = None,
+        output_format: OutputFormat | None = None,
     ) -> typing.Generator[Spectrum, typing.Any]:
         """
         Obtain spectra
@@ -577,7 +569,9 @@ class SpektralwerkCore:
         Returns:
             incremental delivery of spectra
         """
-        return self._spectrum_generator(spectra_count=spectra_count)
+        return self._spectrum_generator(
+            spectra_count=spectra_count, output_format=output_format
+        )
 
     def set_config_processing(
         self,
