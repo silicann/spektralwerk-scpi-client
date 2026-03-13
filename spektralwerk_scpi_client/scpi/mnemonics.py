@@ -13,6 +13,13 @@ class OutputFormat(enum.StrEnum):
     COBS_INT16 = "cobs_int16"
 
 
+class Trigger(enum.StrEnum):
+    NONE = "none"
+    TRIGGER_RISING = "input,rising"
+    TRIGGER_FALLING = "input,falling"
+    TRIGGER_ANY = "input,any"
+
+
 class Format(typing.NamedTuple):
     timestamp_format: str
     pixel_format: str

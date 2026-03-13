@@ -5,6 +5,11 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 
 ## [0.x.x] - 2026-...
 
+### Added
+
+- Functions for requesting output format and change the output format on the Spektralwerk Core
+- Functions for requesting trigger and change trigger in the Spektralwerk Core
+- A spectrum generator which does not alter the current configuration on the Spektralwerk Core
 
 
 ### Changed

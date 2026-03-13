@@ -22,6 +22,7 @@ from spektralwerk_scpi_client.scpi.commands import (
 from spektralwerk_scpi_client.scpi.mnemonics import (
     OutputFormat,
     ProcessingStep,
+    Trigger,
 )
 from spektralwerk_scpi_client.utils.convert import decoded_spectrum
 
@@ -186,6 +187,20 @@ class SpektralwerkCore:
         spectra_count: int | None = None,
         output_format: OutputFormat | None = OutputFormat.COBS_INT16,
     ) -> typing.Generator[Spectrum, typing.Any]:
+        """
+        Retrieve multiple spectra within one request
+
+        The spectral emission is started with the provided configuration. If spectra
+        count and output format are not provided, an infinite in-band stream with cobs
+        encoded spectra (high sample rate).
+
+        Args:
+            spectra_count: number of spectra which will be returned
+            output_format: encoding for the returned spectra
+
+        Returns:
+            spectrum generator
+        """
         # apply configurations
         # if nothing is specified, an infinite stream cobs encoded is started
         for query in (
@@ -195,8 +210,8 @@ class SpektralwerkCore:
             SCPI.MEASURE_SPECTRUM_CONFIG_FORMAT_COMMAND.with_arguments(output_format),
         ):
             self._request_with_error_check(query)
-        # cobs uses b"\0" for separating responses, while other formats use b"\n"
-        delimiter = b"\0" if output_format is OutputFormat.COBS_INT16 else b"\n"
+        # cobs uses b"\0" for separating responses, while other formats use b";"
+        delimiter = b"\0" if output_format is OutputFormat.COBS_INT16 else b";"
         for emitted_count, raw_spectrum in enumerate(
             self._request_stream(
                 SCPI.MEASURE_SPECTRUM_REQUEST_QUERY, delimiter=delimiter
@@ -206,6 +221,35 @@ class SpektralwerkCore:
             spectrum = decoded_spectrum(raw_spectrum, output_format)
             yield spectrum
             if spectra_count and emitted_count >= spectra_count:
+                break
+
+    def _configured_spectrum_generator(self) -> typing.Generator[Spectrum, typing.Any]:
+        """
+        Retrieve multiple spectra within one request
+
+        The spectral emission relies on the current configuration on the Spektralwerk.
+
+        Returns:
+            spectrum generator
+        """
+        output_format = self.get_config_format()
+        spectra_count = self.get_config_count()
+
+        is_triggered = self.get_config_trigger() != Trigger.NONE
+
+        delimiter = b"\0" if output_format is OutputFormat.COBS_INT16 else b";"
+        for emitted_count, raw_spectrum in enumerate(
+            self._request_stream(
+                SCPI.MEASURE_SPECTRUM_REQUEST_QUERY, delimiter=delimiter
+            ),
+            start=1,
+        ):
+            spectrum = decoded_spectrum(raw_spectrum, output_format)
+            yield spectrum
+            if spectra_count and emitted_count >= spectra_count:
+                # prevent the stream to be interrupted
+                if is_triggered:
+                    continue
                 break
 
     def get_error_message(self) -> SCPIErrorMessage:
@@ -573,6 +617,15 @@ class SpektralwerkCore:
             spectra_count=spectra_count, output_format=output_format
         )
 
+    def get_configured_spectra(self) -> typing.Generator[Spectrum, typing.Any]:
+        """
+        Obtain spectra without changing configuration on the Spektralwerk Core
+
+        Returns:
+            incremental delivery of spectra
+        """
+        return self._configured_spectrum_generator()
+
     def set_config_processing(
         self,
         processing_steps: list[ProcessingStep] | None,
@@ -609,6 +662,49 @@ class SpektralwerkCore:
                 :SPECtrum:REQuest?`
         """
         message = SCPI.MEASURE_SPECTRUM_CONFIG_COUNT_COMMAND.with_arguments(count)
+        self._request_with_error_check(message=message)
+
+    def get_config_format(self) -> OutputFormat:
+        """
+        Obtain the current configured output format
+
+        Returns:
+            configured output format
+        """
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_FORMAT_QUERY
+        return OutputFormat(self._request_with_error_check(message=message))
+
+    def set_config_format(self, output_format: OutputFormat):
+        """
+        Set the output format for in-band and out-of-band spectral emission
+
+        Args:
+            output_format: the output format for the spectral emission
+
+        """
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_FORMAT_COMMAND.with_arguments(
+            output_format.value
+        )
+        self._request_with_error_check(message=message)
+
+    def get_config_trigger(self) -> Trigger:
+        """
+        Obtain the current trigger origin
+
+        Returns:
+            the configured trigger origin
+        """
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_TRIGGER_QUERY
+        return Trigger(self._request_with_error_check(message=message))
+
+    def set_config_trigger(self, trigger: Trigger) -> None:
+        """
+        Set the trigger origin
+
+        Args:
+            trigger: the event which starts spectral emission
+        """
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_TRIGGER_COMMAND.with_arguments(trigger)
         self._request_with_error_check(message=message)
 
     def get_config_roi(self) -> tuple[int, int]:
