@@ -21,7 +21,10 @@ from spektralwerk_scpi_client.scpi import SCPIErrorMessage
 from spektralwerk_scpi_client.scpi.commands import (
     SCPICommand as SCPI,  # noqa N814
 )
-from spektralwerk_scpi_client.scpi.mnemonics import OutputFormat, ProcessingStep
+from spektralwerk_scpi_client.scpi.mnemonics import (
+    OutputFormat,
+    ProcessingStep,
+)
 from spektralwerk_scpi_client.utils.convert import decoded_spectrum
 
 _logger = logging.getLogger()
@@ -188,11 +191,10 @@ class SpektralwerkCore:
         format_pixel: str = "H",
     ) -> typing.Generator[Spectrum, typing.Any]:
         for query in (
-            # infinite number of spectra to retrieve
-            SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_COMMAND.with_arguments(
-                0 if spectra_count is None else spectra_count
+            SCPI.MEASURE_SPECTRUM_CONFIG_COUNT_COMMAND.with_arguments(
+                spectra_count if spectra_count else 0
             ),
-            SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_FORMAT_COMMAND.with_arguments(
+            SCPI.MEASURE_SPECTRUM_CONFIG_FORMAT_COMMAND.with_arguments(
                 output_format
             ),
         ):
@@ -305,7 +307,7 @@ class SpektralwerkCore:
         Returns:
             exposure time value
         """
-        message = SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_QUERY
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_QUERY
         response = self._request_with_error_check(message=message)
         return float(response)
 
@@ -316,7 +318,7 @@ class SpektralwerkCore:
         Args:
             exposure time in µs
         """
-        message = SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_COMMAND.with_arguments(
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_COMMAND.with_arguments(
             exposure_time
         )
         self._request_with_error_check(message=message)
@@ -328,7 +330,7 @@ class SpektralwerkCore:
         Returns:
             unit of the exposure time
         """
-        message = SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_UNIT_QUERY
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_UNIT_QUERY
         return self._request_with_error_check(message=message)
 
     def get_exposure_time_max(self) -> float:
@@ -338,7 +340,7 @@ class SpektralwerkCore:
         Returns:
             bare maximum exposure time value
         """
-        message = SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_MAX_QUERY
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_MAX_QUERY
         response = self._request_with_error_check(message=message)
         return float(response)
 
@@ -349,7 +351,7 @@ class SpektralwerkCore:
         Returns:
             bare minimum exposure time value
         """
-        message = SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_MIN_QUERY
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_MIN_QUERY
         response = self._request_with_error_check(message=message)
         return float(response)
 
@@ -360,7 +362,7 @@ class SpektralwerkCore:
         Returns:
             current value for number of averaged spectra
         """
-        message = SCPI.MEASURE_SPECTRUM_AVERAGE_NUMBER_QUERY
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_QUERY
         response = self._request_with_error_check(message=message)
         return int(response)
 
@@ -372,7 +374,7 @@ class SpektralwerkCore:
             number_of_spectra: number of spectra used for the rolling average
 
         """
-        message = SCPI.MEASURE_SPECTRUM_AVERAGE_NUMBER_COMMAND.with_arguments(
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_COMMAND.with_arguments(
             number_of_spectra
         )
         self._request_with_error_check(message=message)
@@ -384,7 +386,7 @@ class SpektralwerkCore:
         Returns:
             maximum value for number of averaged spectra
         """
-        message = SCPI.MEASURE_SPECTRUM_AVERAGE_NUMBER_MAX_QUERY
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_MAX_QUERY
         response = self._request_with_error_check(message=message)
         return int(response)
 
@@ -395,7 +397,7 @@ class SpektralwerkCore:
         Returns:
             minimum value for number of averaged spectra
         """
-        message = SCPI.MEASURE_SPECTRUM_AVERAGE_NUMBER_MIN_QUERY
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_MIN_QUERY
         response = self._request_with_error_check(message=message)
         return int(response)
 
@@ -577,7 +579,7 @@ class SpektralwerkCore:
         """
         return self._spectrum_generator(spectra_count=spectra_count)
 
-    def set_processing(
+    def set_config_processing(
         self,
         processing_steps: list[ProcessingStep] | None,
     ) -> None:
@@ -588,23 +590,23 @@ class SpektralwerkCore:
             processing_steps: list of processing steps. If `None` is passed, the
                 currently valid processing steps will be removed.
         """
-        message = f"{SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_PROCESSING_COMMAND}"
+        message = f"{SCPI.MEASURE_SPECTRUM_CONFIG_PROCESSING_COMMAND}"
 
         if processing_steps:
             message = f"{message} {','.join([step.value for step in processing_steps])}"
         self._request_with_error_check(message=message)
 
-    def get_request_count(self) -> int:
+    def get_config_count(self) -> int:
         """
         Obtain the current configured number of streamed spectra
 
         Returns:
             configured number of counts. A value of `0` will lead to an infinite stream.
         """
-        message = f"{SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_QUERY}"
+        message = f"{SCPI.MEASURE_SPECTRUM_CONFIG_COUNT_QUERY}"
         return int(self._request_with_error_check(message=message))
 
-    def set_request_count(self, count: int) -> None:
+    def set_config_count(self, count: int) -> None:
         """
         Set the number of spectra to obtain from a single call
 
@@ -612,12 +614,10 @@ class SpektralwerkCore:
             count: the number of spectra which should be returned upon calling `MEASure
                 :SPECtrum:REQuest?`
         """
-        message = SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_COMMAND.with_arguments(
-            count
-        )
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_COUNT_COMMAND.with_arguments(count)
         self._request_with_error_check(message=message)
 
-    def get_request_roi(self) -> tuple[int, int]:
+    def get_config_roi(self) -> tuple[int, int]:
         """
         Obtain the currend configured region-of-interest
 
@@ -627,7 +627,7 @@ class SpektralwerkCore:
         Returns:
             region-of-interest
         """
-        message = f"{SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_ROI_QUERY}"
+        message = f"{SCPI.MEASURE_SPECTRUM_CONFIG_ROI_QUERY}"
         try:
             roi_str = self._request_with_error_check(message=message).split(",")
             roi = ROI(*[int(value) for value in roi_str])
@@ -635,7 +635,7 @@ class SpektralwerkCore:
             raise SpektralwerkUnexpectedResponseError from exc
         return roi
 
-    def set_request_roi(self, roi: tuple[int, int]) -> None:
+    def set_config_roi(self, roi: tuple[int, int]) -> None:
         """
         Set the region-of-interest
 
@@ -643,7 +643,7 @@ class SpektralwerkCore:
             roi: a tuple containing the start and end pixel number for restricting the
                 returned spectra.
         """
-        message = SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_ROI_COMMAND.with_arguments(
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_ROI_COMMAND.with_arguments(
             ",".join(str(pixel) for pixel in roi)
         )
         self._request_with_error_check(message=message)
@@ -660,10 +660,11 @@ class SpektralwerkCore:
         Returns:
             averaged spectra
         """
-
         # adjust processing steps to obtain averaged spectra; other processing steps are removed
-        self.set_processing([ProcessingStep.AVERAGE])
-        return self._spectrum_generator()
+        self.set_config_processing([ProcessingStep.AVERAGE])
+        return self._spectrum_generator(
+            spectra_count=1, output_format=OutputFormat.HUMAN
+        )
 
     def process_request_with_error_check(self, command: str) -> str:
         """

@@ -5,6 +5,20 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 
 ## [0.x.x] - 2026-...
 
+
+
+### Changed
+
+- Adopt current SCPI command structure for
+    - exposure time
+    - average number
+- Rename functions
+    - `get_request_cont` -> `get_config_count`
+    - `set_request_cont` -> `set_config_count`
+    - `set_processing` -> `set_config_processing`
+    - `get_request_roi` -> `get_config_roi`
+    - `set_request_roi` -> `set_config_roi`
+
 ### Fixed
 
 - Tolerate empty records in a stream response. There are used as heartbeat messages for keeping the TCP connection alive.
