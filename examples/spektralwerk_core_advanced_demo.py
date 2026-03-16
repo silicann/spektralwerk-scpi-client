@@ -24,7 +24,7 @@ def finite_spectra_resquest(host, port):
     spw_core = SpektralwerkCore(host=host, port=port)
 
     # request the device identity
-    identity = spw_core.get_identity().model_dump()
+    identity = spw_core.get_identity()
     print(f"device identity: {identity}")
 
     few_spectral_samples = 3
@@ -66,7 +66,7 @@ def infinite_stream_request(host, port):
     spw_core = SpektralwerkCore(host=host, port=port)
 
     # request the device identity
-    identity = spw_core.get_identity().model_dump()
+    identity = spw_core.get_identity()
     print(f"device identity: {identity}")
 
     current_counts = spw_core.get_config_count()
@@ -96,8 +96,8 @@ def infinite_stream_request(host, port):
 
 def finite_triggered_stream(host, port):
     # configuration
-    NUMBER_OF_SPECTRA = 10000
-    TRIGGER_EDGE = Trigger.TRIGGER_FALLING
+    number_of_spectra = 10000
+    trigger_edge = Trigger.TRIGGER_FALLING
 
     spw_core = SpektralwerkCore(host=host, port=port)
 
@@ -108,15 +108,15 @@ def finite_triggered_stream(host, port):
     # configure the number of spectra which will be emitted
     current_counts = spw_core.get_config_count()
     print(f"Number of counts: {current_counts}")
-    if current_counts != NUMBER_OF_SPECTRA:
-        spw_core.set_config_count(count=NUMBER_OF_SPECTRA)
+    if current_counts != number_of_spectra:
+        spw_core.set_config_count(count=number_of_spectra)
         current_counts = spw_core.get_config_count()
         print(f"Number of counts: {current_counts}")
 
     current_trigger = spw_core.get_config_trigger()
     print(f"Current trigger: {current_trigger}")
-    if current_trigger is not TRIGGER_EDGE:
-        spw_core.set_config_trigger(trigger=TRIGGER_EDGE)
+    if current_trigger is not trigger_edge:
+        spw_core.set_config_trigger(trigger=trigger_edge)
         current_trigger = spw_core.get_config_trigger()
         print(f"Current trigger: {current_trigger}")
 

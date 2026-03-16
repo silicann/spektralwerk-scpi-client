@@ -23,6 +23,7 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
     - `set_processing` -> `set_config_processing`
     - `get_request_roi` -> `get_config_roi`
     - `set_request_roi` -> `set_config_roi`
+- Replace `pydantic.BaseModel` with `dataclass` for `Identity`
 
 ### Fixed
 

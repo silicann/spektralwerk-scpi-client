@@ -1,9 +1,9 @@
+from dataclasses import dataclass
 from typing import NamedTuple
 
-from pydantic import BaseModel
 
-
-class Identity(BaseModel):
+@dataclass
+class Identity:
     vendor: str
     model: str
     serial_number: str

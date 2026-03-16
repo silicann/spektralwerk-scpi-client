@@ -19,7 +19,7 @@ def main(host, port):
     spw_core = SpektralwerkCore(host=host, port=port)
 
     # request the device identity
-    identity = spw_core.get_identity().model_dump()
+    identity = spw_core.get_identity()
     print(f"device identity: {identity}")
 
     # receive wavelength array
