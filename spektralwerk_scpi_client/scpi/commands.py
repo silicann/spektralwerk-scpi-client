@@ -19,6 +19,9 @@ class SCPICommand(enum.StrEnum):
     DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_QUERY = (
         "DEVice:SPECtrometer:BACKground:OFFSet:VOLTage?"
     )
+    DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_DEFAULT_QUERY = (
+        "DEVice:SPECtrometer:BACKground:OFFSet:VOLTage:DEFault?"
+    )
     DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MAX_QUERY = (
         "DEVice:SPECtrometer:BACKground:OFFSet:VOLTage:MAXimum?"
     )
@@ -40,6 +43,9 @@ class SCPICommand(enum.StrEnum):
     MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_QUERY = (
         "MEASure:SPECtrum:CONFig:AVERage:NUMBer?"
     )
+    MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_DEFAULT_QUERY = (
+        "MEASure:SPECtrum:CONFig:AVERage:NUMBer:DEFault?"
+    )
     MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_MAX_QUERY = (
         "MEASure:SPECtrum:CONFig:AVERage:NUMBer:MAXimum?"
     )
@@ -53,6 +59,9 @@ class SCPICommand(enum.StrEnum):
     )
     MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_QUERY = (
         "MEASure:SPECtrum:CONFig:EXPosure:TIME?"
+    )
+    MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_DEFAULT_QUERY = (
+        "MEASure:SPECtrum:CONFig:EXPosure:TIME:DEFault?"
     )
     MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_MAX_QUERY = (
         "MEASure:SPECtrum:CONFig:EXPosure:TIME:MAXimum?"

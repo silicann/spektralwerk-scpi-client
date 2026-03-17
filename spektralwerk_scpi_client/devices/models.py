@@ -10,6 +10,14 @@ class Identity:
     firmware_version: str
 
 
+@dataclass
+class SCPIValueContext:
+    minimum: int | float
+    maximum: int | float
+    default: int | float
+    unit: str | None
+
+
 class Spectrum(NamedTuple):
     """
     Basic spectrum class

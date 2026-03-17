@@ -7,7 +7,7 @@ import typing
 
 import pyvisa
 
-from spektralwerk_scpi_client.devices.models import Identity, Spectrum
+from spektralwerk_scpi_client.devices.models import Identity, SCPIValueContext, Spectrum
 from spektralwerk_scpi_client.exceptions import (
     SpektralwerkConnectionError,
     SpektralwerkError,
@@ -357,37 +357,32 @@ class SpektralwerkCore:
         )
         self._request_with_error_check(message=message)
 
-    def get_exposure_time_unit(self) -> str:
+    def get_exposure_time_context(self) -> SCPIValueContext:
         """
-        Get the unit of the exposure time
+        Get the context of the exposure time
+
+        The context contains the min/max values for the exposure time, the default value
+        and the unit for the current, min, max and default value.
 
         Returns:
-            unit of the exposure time
+            exposure time context
         """
-        message = SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_UNIT_QUERY
-        return self._request_with_error_check(message=message)
-
-    def get_exposure_time_max(self) -> float:
-        """
-        Obtain maximum exposure time value
-
-        Returns:
-            bare maximum exposure time value
-        """
-        message = SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_MAX_QUERY
-        response = self._request_with_error_check(message=message)
-        return float(response)
-
-    def get_exposure_time_min(self) -> float:
-        """
-        Obtain minimum exposure time value
-
-        Returns:
-            bare minimum exposure time value
-        """
-        message = SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_MIN_QUERY
-        response = self._request_with_error_check(message=message)
-        return float(response)
+        context_queries = [
+            SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_MIN_QUERY,
+            SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_MAX_QUERY,
+            SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_DEFAULT_QUERY,
+            SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_UNIT_QUERY,
+        ]
+        context_message = ";".join(context_queries)
+        [minimum, maximum, default, unit] = self._request_with_error_check(
+            message=context_message
+        ).split(";")
+        return SCPIValueContext(
+            minimum=float(minimum),
+            maximum=float(maximum),
+            default=float(default),
+            unit=unit,
+        )
 
     def get_average_number(self) -> int:
         """
@@ -413,27 +408,30 @@ class SpektralwerkCore:
         )
         self._request_with_error_check(message=message)
 
-    def get_average_number_max(self) -> int:
+    def get_average_number_context(self) -> SCPIValueContext:
         """
-        Obtain max value for number of averaged spectra
+        Get the context of the average number
+
+        The context contains the min/max values for the average number and the default value
 
         Returns:
-            maximum value for number of averaged spectra
+            average number context
         """
-        message = SCPI.MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_MAX_QUERY
-        response = self._request_with_error_check(message=message)
-        return int(response)
-
-    def get_average_number_min(self) -> int:
-        """
-        Obtain minimum value for number of averaged spectra
-
-        Returns:
-            minimum value for number of averaged spectra
-        """
-        message = SCPI.MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_MIN_QUERY
-        response = self._request_with_error_check(message=message)
-        return int(response)
+        context_queries = [
+            SCPI.MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_MIN_QUERY,
+            SCPI.MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_MAX_QUERY,
+            SCPI.MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_DEFAULT_QUERY,
+        ]
+        context_message = ";".join(context_queries)
+        [minimum, maximum, default] = self._request_with_error_check(
+            message=context_message
+        ).split(";")
+        return SCPIValueContext(
+            minimum=int(minimum),
+            maximum=int(maximum),
+            default=int(default),
+            unit=None,
+        )
 
     def get_offset_voltage(self) -> float:
         """
@@ -460,37 +458,32 @@ class SpektralwerkCore:
         )
         self._request_with_error_check(message=message)
 
-    def get_offset_voltag_unit(self) -> str:
+    def get_offset_voltage_context(self) -> SCPIValueContext:
         """
-        Get the unit of the offset voltage
+        Get the context of the offset voltage
+
+        The context contains the min/max values for the offset voltage, the default value
+        and the unit for the current, min, max and default value.
 
         Returns:
-            unit of the offset voltage
+            offset voltage context
         """
-        message = SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_UNIT_QUERY
-        return self._request_with_error_check(message=message)
-
-    def get_offset_voltage_max(self) -> float:
-        """
-        Obtain maximum value for spectrometer pixel offset voltage
-
-        Returns:
-            maximum value for spectrometer pixel offset voltage
-        """
-        message = SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MAX_QUERY
-        response = self._request_with_error_check(message=message)
-        return float(response)
-
-    def get_offset_voltage_min(self) -> float:
-        """
-        Obtain minimum value for spectrometer pixel offset voltage
-
-        Returns:
-            minimum value for spectrometer pixel offset voltage
-        """
-        message = SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MIN_QUERY
-        response = self._request_with_error_check(message=message)
-        return float(response)
+        context_queries = [
+            SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MIN_QUERY,
+            SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MAX_QUERY,
+            SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_DEFAULT_QUERY,
+            SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_UNIT_QUERY,
+        ]
+        context_message = ";".join(context_queries)
+        [minimum, maximum, default, unit] = self._request_with_error_check(
+            message=context_message
+        ).split(";")
+        return SCPIValueContext(
+            minimum=float(minimum),
+            maximum=float(maximum),
+            default=float(default),
+            unit=unit,
+        )
 
     def get_dark_reference(self) -> list[float]:
         """

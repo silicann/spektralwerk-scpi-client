@@ -24,6 +24,7 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
     - `get_request_roi` -> `get_config_roi`
     - `set_request_roi` -> `set_config_roi`
 - Replace `pydantic.BaseModel` with `dataclass` for `Identity`
+- Replace the separate functions to obtain min/max for exposure time by a `get_exposure_time_context` function. Therefore a SCPIValueContext dataclass is introduced to provide a structured access to the context of a value, e.g. exposure time.
 
 ### Fixed
 
