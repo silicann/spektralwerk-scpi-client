@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import contextlib
 import logging
-import struct
 import time
 import typing
 
-import cobs.cobs
 import pyvisa
 
-from spektralwerk_scpi_client.devices.models import Identity
+from spektralwerk_scpi_client.devices.models import Identity, SCPIValueContext, Spectrum
 from spektralwerk_scpi_client.exceptions import (
     SpektralwerkConnectionError,
     SpektralwerkError,
@@ -21,21 +19,14 @@ from spektralwerk_scpi_client.scpi import SCPIErrorMessage
 from spektralwerk_scpi_client.scpi.commands import (
     SCPICommand as SCPI,  # noqa N814
 )
-from spektralwerk_scpi_client.scpi.mnemonics import OutputFormat, ProcessingStep
+from spektralwerk_scpi_client.scpi.mnemonics import (
+    OutputFormat,
+    ProcessingStep,
+    Trigger,
+)
+from spektralwerk_scpi_client.utils.convert import decoded_spectrum
 
 _logger = logging.getLogger()
-
-
-class Spectrum(typing.NamedTuple):
-    """
-    Basic spectrum class
-
-    A spectrum consists of a timestamp in [s] and list of floats containing the spectral
-    intensities.
-    """
-
-    timestamp_sec: float
-    data: list[float]
 
 
 class ROI(typing.NamedTuple):
@@ -171,7 +162,11 @@ class SpektralwerkCore:
             with session.read_termination_context(delimiter):  # type: ignore[attr-defined]
                 while True:
                     response = session.read_raw()  # type: ignore[attr-defined]
-                    yield response.rstrip(delimiter)
+                    raw_response = response.rstrip(delimiter)
+                    # handle empty responses
+                    if not raw_response:
+                        continue
+                    yield raw_response
 
     def _request_with_error_check(self, message: str) -> str:
         _logger.debug("Query sent: %s", message)
@@ -189,38 +184,72 @@ class SpektralwerkCore:
 
     def _spectrum_generator(
         self,
-        output_format: OutputFormat | None = OutputFormat.COBS_INT16,
         spectra_count: int | None = None,
-        format_timestamp: str = "Q",
-        format_pixel: str = "H",
+        output_format: OutputFormat | None = OutputFormat.COBS_INT16,
     ) -> typing.Generator[Spectrum, typing.Any]:
+        """
+        Retrieve multiple spectra within one request
+
+        The spectral emission is started with the provided configuration. If spectra
+        count and output format are not provided, an infinite in-band stream with cobs
+        encoded spectra (high sample rate).
+
+        Args:
+            spectra_count: number of spectra which will be returned
+            output_format: encoding for the returned spectra
+
+        Returns:
+            spectrum generator
+        """
+        # apply configurations
+        # if nothing is specified, an infinite stream cobs encoded is started
         for query in (
-            # infinite number of spectra to retrieve
-            SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_COMMAND.with_arguments(
-                0 if spectra_count is None else spectra_count
+            SCPI.MEASURE_SPECTRUM_CONFIG_COUNT_COMMAND.with_arguments(
+                spectra_count if spectra_count else 0
             ),
-            SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_FORMAT_COMMAND.with_arguments(
-                output_format
-            ),
+            SCPI.MEASURE_SPECTRUM_CONFIG_FORMAT_COMMAND.with_arguments(output_format),
         ):
             self._request_with_error_check(query)
+        # cobs uses b"\0" for separating responses, while other formats use b";"
+        delimiter = b"\0" if output_format is OutputFormat.COBS_INT16 else b";"
         for emitted_count, raw_spectrum in enumerate(
-            self._request_stream(SCPI.MEASURE_SPECTRUM_REQUEST_QUERY, delimiter=b"\0"),
+            self._request_stream(
+                SCPI.MEASURE_SPECTRUM_REQUEST_QUERY, delimiter=delimiter
+            ),
             start=1,
         ):
-            decoded_spectrum = cobs.cobs.decode(raw_spectrum)
-            pixel_count = (
-                len(decoded_spectrum) - struct.calcsize(format_timestamp)
-            ) // struct.calcsize(format_pixel)
-            unpack_format = f"<{format_timestamp}{pixel_count}{format_pixel}"
-            [timestamp_musec, *spectral_data] = struct.unpack(
-                unpack_format, decoded_spectrum
-            )
-            yield Spectrum(
-                float(timestamp_musec / 1_000_000),
-                [float(value) for value in spectral_data],
-            )
+            spectrum = decoded_spectrum(raw_spectrum, output_format)
+            yield spectrum
             if spectra_count and emitted_count >= spectra_count:
+                break
+
+    def _configured_spectrum_generator(self) -> typing.Generator[Spectrum, typing.Any]:
+        """
+        Retrieve multiple spectra within one request
+
+        The spectral emission relies on the current configuration on the Spektralwerk.
+
+        Returns:
+            spectrum generator
+        """
+        output_format = self.get_config_format()
+        spectra_count = self.get_config_count()
+
+        is_triggered = self.get_config_trigger() != Trigger.NONE
+
+        delimiter = b"\0" if output_format is OutputFormat.COBS_INT16 else b";"
+        for emitted_count, raw_spectrum in enumerate(
+            self._request_stream(
+                SCPI.MEASURE_SPECTRUM_REQUEST_QUERY, delimiter=delimiter
+            ),
+            start=1,
+        ):
+            spectrum = decoded_spectrum(raw_spectrum, output_format)
+            yield spectrum
+            if spectra_count and emitted_count >= spectra_count:
+                # prevent the stream to be interrupted
+                if is_triggered:
+                    continue
                 break
 
     def get_error_message(self) -> SCPIErrorMessage:
@@ -312,7 +341,7 @@ class SpektralwerkCore:
         Returns:
             exposure time value
         """
-        message = SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_QUERY
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_QUERY
         response = self._request_with_error_check(message=message)
         return float(response)
 
@@ -323,42 +352,37 @@ class SpektralwerkCore:
         Args:
             exposure time in µs
         """
-        message = SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_COMMAND.with_arguments(
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_COMMAND.with_arguments(
             exposure_time
         )
         self._request_with_error_check(message=message)
 
-    def get_exposure_time_unit(self) -> str:
+    def get_exposure_time_context(self) -> SCPIValueContext:
         """
-        Get the unit of the exposure time
+        Get the context of the exposure time
+
+        The context contains the min/max values for the exposure time, the default value
+        and the unit for the current, min, max and default value.
 
         Returns:
-            unit of the exposure time
+            exposure time context
         """
-        message = SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_UNIT_QUERY
-        return self._request_with_error_check(message=message)
-
-    def get_exposure_time_max(self) -> float:
-        """
-        Obtain maximum exposure time value
-
-        Returns:
-            bare maximum exposure time value
-        """
-        message = SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_MAX_QUERY
-        response = self._request_with_error_check(message=message)
-        return float(response)
-
-    def get_exposure_time_min(self) -> float:
-        """
-        Obtain minimum exposure time value
-
-        Returns:
-            bare minimum exposure time value
-        """
-        message = SCPI.MEASURE_SPECTRUM_EXPOSURE_TIME_MIN_QUERY
-        response = self._request_with_error_check(message=message)
-        return float(response)
+        context_queries = [
+            SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_MIN_QUERY,
+            SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_MAX_QUERY,
+            SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_DEFAULT_QUERY,
+            SCPI.MEASURE_SPECTRUM_CONFIG_EXPOSURE_TIME_UNIT_QUERY,
+        ]
+        context_message = ";".join(context_queries)
+        [minimum, maximum, default, unit] = self._request_with_error_check(
+            message=context_message
+        ).split(";")
+        return SCPIValueContext(
+            minimum=float(minimum),
+            maximum=float(maximum),
+            default=float(default),
+            unit=unit,
+        )
 
     def get_average_number(self) -> int:
         """
@@ -367,7 +391,7 @@ class SpektralwerkCore:
         Returns:
             current value for number of averaged spectra
         """
-        message = SCPI.MEASURE_SPECTRUM_AVERAGE_NUMBER_QUERY
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_QUERY
         response = self._request_with_error_check(message=message)
         return int(response)
 
@@ -379,32 +403,35 @@ class SpektralwerkCore:
             number_of_spectra: number of spectra used for the rolling average
 
         """
-        message = SCPI.MEASURE_SPECTRUM_AVERAGE_NUMBER_COMMAND.with_arguments(
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_COMMAND.with_arguments(
             number_of_spectra
         )
         self._request_with_error_check(message=message)
 
-    def get_average_number_max(self) -> int:
+    def get_average_number_context(self) -> SCPIValueContext:
         """
-        Obtain max value for number of averaged spectra
+        Get the context of the average number
+
+        The context contains the min/max values for the average number and the default value
 
         Returns:
-            maximum value for number of averaged spectra
+            average number context
         """
-        message = SCPI.MEASURE_SPECTRUM_AVERAGE_NUMBER_MAX_QUERY
-        response = self._request_with_error_check(message=message)
-        return int(response)
-
-    def get_average_number_min(self) -> int:
-        """
-        Obtain minimum value for number of averaged spectra
-
-        Returns:
-            minimum value for number of averaged spectra
-        """
-        message = SCPI.MEASURE_SPECTRUM_AVERAGE_NUMBER_MIN_QUERY
-        response = self._request_with_error_check(message=message)
-        return int(response)
+        context_queries = [
+            SCPI.MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_MIN_QUERY,
+            SCPI.MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_MAX_QUERY,
+            SCPI.MEASURE_SPECTRUM_CONFIG_AVERAGE_NUMBER_DEFAULT_QUERY,
+        ]
+        context_message = ";".join(context_queries)
+        [minimum, maximum, default] = self._request_with_error_check(
+            message=context_message
+        ).split(";")
+        return SCPIValueContext(
+            minimum=int(minimum),
+            maximum=int(maximum),
+            default=int(default),
+            unit=None,
+        )
 
     def get_offset_voltage(self) -> float:
         """
@@ -431,37 +458,32 @@ class SpektralwerkCore:
         )
         self._request_with_error_check(message=message)
 
-    def get_offset_voltag_unit(self) -> str:
+    def get_offset_voltage_context(self) -> SCPIValueContext:
         """
-        Get the unit of the offset voltage
+        Get the context of the offset voltage
+
+        The context contains the min/max values for the offset voltage, the default value
+        and the unit for the current, min, max and default value.
 
         Returns:
-            unit of the offset voltage
+            offset voltage context
         """
-        message = SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_UNIT_QUERY
-        return self._request_with_error_check(message=message)
-
-    def get_offset_voltage_max(self) -> float:
-        """
-        Obtain maximum value for spectrometer pixel offset voltage
-
-        Returns:
-            maximum value for spectrometer pixel offset voltage
-        """
-        message = SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MAX_QUERY
-        response = self._request_with_error_check(message=message)
-        return float(response)
-
-    def get_offset_voltage_min(self) -> float:
-        """
-        Obtain minimum value for spectrometer pixel offset voltage
-
-        Returns:
-            minimum value for spectrometer pixel offset voltage
-        """
-        message = SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MIN_QUERY
-        response = self._request_with_error_check(message=message)
-        return float(response)
+        context_queries = [
+            SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MIN_QUERY,
+            SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_MAX_QUERY,
+            SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_DEFAULT_QUERY,
+            SCPI.DEVICE_SPECTROMETER_BACKGROUND_OFFSET_VOLTAGE_UNIT_QUERY,
+        ]
+        context_message = ";".join(context_queries)
+        [minimum, maximum, default, unit] = self._request_with_error_check(
+            message=context_message
+        ).split(";")
+        return SCPIValueContext(
+            minimum=float(minimum),
+            maximum=float(maximum),
+            default=float(default),
+            unit=unit,
+        )
 
     def get_dark_reference(self) -> list[float]:
         """
@@ -560,10 +582,7 @@ class SpektralwerkCore:
         response = self._request_with_error_check(
             message=SCPI.MEASURE_SPECTRUM_REQUEST_RAW_QUERY
         )
-        [timestamp, *data] = response.split(",")
-        return Spectrum(
-            timestamp_sec=float(timestamp), data=[float(value) for value in data]
-        )
+        return decoded_spectrum(response)
 
     def get_spectrum(self) -> Spectrum:
         """
@@ -577,7 +596,9 @@ class SpektralwerkCore:
         return next(self._spectrum_generator(spectra_count=1))
 
     def get_spectra(
-        self, spectra_count: int | None = None
+        self,
+        spectra_count: int | None = None,
+        output_format: OutputFormat | None = None,
     ) -> typing.Generator[Spectrum, typing.Any]:
         """
         Obtain spectra
@@ -585,9 +606,20 @@ class SpektralwerkCore:
         Returns:
             incremental delivery of spectra
         """
-        return self._spectrum_generator(spectra_count=spectra_count)
+        return self._spectrum_generator(
+            spectra_count=spectra_count, output_format=output_format
+        )
 
-    def set_processing(
+    def get_configured_spectra(self) -> typing.Generator[Spectrum, typing.Any]:
+        """
+        Obtain spectra without changing configuration on the Spektralwerk Core
+
+        Returns:
+            incremental delivery of spectra
+        """
+        return self._configured_spectrum_generator()
+
+    def set_config_processing(
         self,
         processing_steps: list[ProcessingStep] | None,
     ) -> None:
@@ -598,23 +630,23 @@ class SpektralwerkCore:
             processing_steps: list of processing steps. If `None` is passed, the
                 currently valid processing steps will be removed.
         """
-        message = f"{SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_PROCESSING_COMMAND}"
+        message = f"{SCPI.MEASURE_SPECTRUM_CONFIG_PROCESSING_COMMAND}"
 
         if processing_steps:
             message = f"{message} {','.join([step.value for step in processing_steps])}"
         self._request_with_error_check(message=message)
 
-    def get_request_count(self) -> int:
+    def get_config_count(self) -> int:
         """
         Obtain the current configured number of streamed spectra
 
         Returns:
             configured number of counts. A value of `0` will lead to an infinite stream.
         """
-        message = f"{SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_QUERY}"
+        message = f"{SCPI.MEASURE_SPECTRUM_CONFIG_COUNT_QUERY}"
         return int(self._request_with_error_check(message=message))
 
-    def set_request_count(self, count: int) -> None:
+    def set_config_count(self, count: int) -> None:
         """
         Set the number of spectra to obtain from a single call
 
@@ -622,12 +654,53 @@ class SpektralwerkCore:
             count: the number of spectra which should be returned upon calling `MEASure
                 :SPECtrum:REQuest?`
         """
-        message = SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_COUNT_COMMAND.with_arguments(
-            count
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_COUNT_COMMAND.with_arguments(count)
+        self._request_with_error_check(message=message)
+
+    def get_config_format(self) -> OutputFormat:
+        """
+        Obtain the current configured output format
+
+        Returns:
+            configured output format
+        """
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_FORMAT_QUERY
+        return OutputFormat(self._request_with_error_check(message=message))
+
+    def set_config_format(self, output_format: OutputFormat):
+        """
+        Set the output format for in-band and out-of-band spectral emission
+
+        Args:
+            output_format: the output format for the spectral emission
+
+        """
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_FORMAT_COMMAND.with_arguments(
+            output_format.value
         )
         self._request_with_error_check(message=message)
 
-    def get_request_roi(self) -> tuple[int, int]:
+    def get_config_trigger(self) -> Trigger:
+        """
+        Obtain the current trigger origin
+
+        Returns:
+            the configured trigger origin
+        """
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_TRIGGER_QUERY
+        return Trigger(self._request_with_error_check(message=message))
+
+    def set_config_trigger(self, trigger: Trigger) -> None:
+        """
+        Set the trigger origin
+
+        Args:
+            trigger: the event which starts spectral emission
+        """
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_TRIGGER_COMMAND.with_arguments(trigger)
+        self._request_with_error_check(message=message)
+
+    def get_config_roi(self) -> tuple[int, int]:
         """
         Obtain the currend configured region-of-interest
 
@@ -637,7 +710,7 @@ class SpektralwerkCore:
         Returns:
             region-of-interest
         """
-        message = f"{SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_ROI_QUERY}"
+        message = f"{SCPI.MEASURE_SPECTRUM_CONFIG_ROI_QUERY}"
         try:
             roi_str = self._request_with_error_check(message=message).split(",")
             roi = ROI(*[int(value) for value in roi_str])
@@ -645,7 +718,7 @@ class SpektralwerkCore:
             raise SpektralwerkUnexpectedResponseError from exc
         return roi
 
-    def set_request_roi(self, roi: tuple[int, int]) -> None:
+    def set_config_roi(self, roi: tuple[int, int]) -> None:
         """
         Set the region-of-interest
 
@@ -653,7 +726,7 @@ class SpektralwerkCore:
             roi: a tuple containing the start and end pixel number for restricting the
                 returned spectra.
         """
-        message = SCPI.MEASURE_SPECTRUM_REQUEST_CONFIG_ROI_COMMAND.with_arguments(
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_ROI_COMMAND.with_arguments(
             ",".join(str(pixel) for pixel in roi)
         )
         self._request_with_error_check(message=message)
@@ -670,10 +743,11 @@ class SpektralwerkCore:
         Returns:
             averaged spectra
         """
-
         # adjust processing steps to obtain averaged spectra; other processing steps are removed
-        self.set_processing([ProcessingStep.AVERAGE])
-        return self._spectrum_generator()
+        self.set_config_processing([ProcessingStep.AVERAGE])
+        return self._spectrum_generator(
+            spectra_count=1, output_format=OutputFormat.HUMAN
+        )
 
     def process_request_with_error_check(self, command: str) -> str:
         """

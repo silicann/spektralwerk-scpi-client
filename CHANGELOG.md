@@ -3,6 +3,34 @@
 All notable changes of the `spektralwerk_scpi_client` will be documented in this file
 
 
+## [0.x.x] - 2026-...
+
+### Added
+
+- Functions for requesting output format and change the output format on the Spektralwerk Core
+- Functions for requesting trigger and change trigger in the Spektralwerk Core
+- A spectrum generator which does not alter the current configuration on the Spektralwerk Core
+
+
+### Changed
+
+- Adopt current SCPI command structure for
+    - exposure time
+    - average number
+- Rename functions
+    - `get_request_cont` -> `get_config_count`
+    - `set_request_cont` -> `set_config_count`
+    - `set_processing` -> `set_config_processing`
+    - `get_request_roi` -> `get_config_roi`
+    - `set_request_roi` -> `set_config_roi`
+- Replace `pydantic.BaseModel` with `dataclass` for `Identity`
+- Replace the separate functions to obtain min/max for exposure time by a `get_exposure_time_context` function. Therefore a SCPIValueContext dataclass is introduced to provide a structured access to the context of a value, e.g. exposure time.
+
+### Fixed
+
+- Tolerate empty records in a stream response. There are used as heartbeat messages for keeping the TCP connection alive.
+
+
 ## [0.4.2] - 2026-03-04
 
 ### Added
