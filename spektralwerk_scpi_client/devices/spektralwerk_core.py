@@ -619,21 +619,53 @@ class SpektralwerkCore:
         """
         return self._configured_spectrum_generator()
 
+    def get_processing(self) -> set[ProcessingStep]:
+        """
+        Obtain the configured processing steps
+
+        Returns:
+            set with the configured processing steps
+        """
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_PROCESSING_QUERY
+        response = self._request_with_error_check(message=message)
+        return {ProcessingStep(step) for step in response.split(",")}
+
     def set_config_processing(
         self,
-        processing_steps: list[ProcessingStep] | None,
+        processing_steps: set[ProcessingStep] | None,
     ) -> None:
         """
         Set processing steps for requesting spectral sample
 
         Args:
-            processing_steps: list of processing steps. If `None` is passed, the
+            processing_steps: set of processing steps. If `None` is passed, the
                 currently valid processing steps will be removed.
         """
         message = f"{SCPI.MEASURE_SPECTRUM_CONFIG_PROCESSING_COMMAND}"
-
         if processing_steps:
-            message = f"{message} {','.join([step.value for step in processing_steps])}"
+            message = f"{message} {','.join(processing_steps)}"
+        self._request_with_error_check(message=message)
+
+    def get_binning_width(self) -> int:
+        """
+        Obtain the current binning width
+
+        Returns:
+            configured number of merged pixels
+        """
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_BINNING_WIDTH_QUERY
+        return int(self._request_with_error_check(message=message))
+
+    def set_binnig_width(self, width: int) -> None:
+        """
+        Set the number of merged pixel
+
+        Args:
+            width: the number of merged pixel
+        """
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_BINNING_WIDTH_COMMAND.with_arguments(
+            width
+        )
         self._request_with_error_check(message=message)
 
     def get_config_count(self) -> int:
@@ -744,7 +776,7 @@ class SpektralwerkCore:
             averaged spectra
         """
         # adjust processing steps to obtain averaged spectra; other processing steps are removed
-        self.set_config_processing([ProcessingStep.AVERAGE])
+        self.set_processing({ProcessingStep.AVERAGE})
         return self._spectrum_generator(
             spectra_count=1, output_format=OutputFormat.HUMAN
         )

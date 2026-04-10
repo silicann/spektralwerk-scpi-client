@@ -10,6 +10,9 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 - Functions for requesting output format and change the output format on the Spektralwerk Core
 - Functions for requesting trigger and change trigger in the Spektralwerk Core
 - A spectrum generator which does not alter the current configuration on the Spektralwerk Core
+- `binning` SCPI endpoints
+- Processing steps for `binning` and `roi` handling
+    - Examples for `binning` and `roi` are added
 
 
 ### Changed

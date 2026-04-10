@@ -4,6 +4,12 @@ import typing
 
 class ProcessingStep(enum.StrEnum):
     AVERAGE = "average"
+    BINNING = "binning"
+    NONE = "none"
+    REFERENCE_DARK = "reference_dark"
+    REFERENCE_LIGHT = "reference_light"
+    ROI = "roi"
+    SCALE = "scale"
 
 
 class OutputFormat(enum.StrEnum):

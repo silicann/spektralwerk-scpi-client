@@ -10,6 +10,7 @@ The default IP is `127.0.0.1` (localhost) and the default port is `5025`.
 
 from spektralwerk_scpi_client.devices import SpektralwerkCore
 from spektralwerk_scpi_client.exceptions import SpektralwerkError
+from spektralwerk_scpi_client.scpi.mnemonics import ProcessingStep
 
 DEFAULT_HOST: str = "127.0.0.1"
 DEFAULT_PORT: str = "5025"
@@ -38,6 +39,24 @@ def main(host, port):
     current_average_number = spw_core.get_average_number()
     print(f"current average number: {current_average_number}")
 
+    # restrict the spectral emission to the pixel 100 ..200
+    region_of_interest = (100, 200)
+    spw_core.set_config_roi(roi=region_of_interest)
+    spw_core.set_config_processing(processing_steps=[ProcessingStep.ROI])
+    number_sample_spectra = 1
+    spectrum = list(spw_core.get_spectra(number_sample_spectra))
+    print(f"truncated spectrum: {spectrum}")
+
+    # apply pixel binning
+    binning_width = 50
+    spw_core.set_binnig_width(width=binning_width)
+    spw_core.set_config_processing(processing_steps=[ProcessingStep.BINNING])
+    number_sample_spectra = 1
+    spectrum = list(spw_core.get_spectra(number_sample_spectra))
+    print(f"binned spectra: {spectrum}")
+    # remove binning afterwards
+    spw_core.set_processing(processing_steps=None)
+
     # retrieve 10 single raw spectra
     number_sample_spectra = 10
     raw_spectra = []
@@ -57,9 +76,10 @@ def main(host, port):
     # change timeout for a single command
     spw_core.set_exposure_time(1.0)
     spw_core.set_average_number(20)
+    number_of_spectra = 1
     print("Stay calm, this might take some seconds.")
     with spw_core.apply_temporary_timeout(25):
-        print(list(spw_core.get_averaged_spectra()))
+        print(list(spw_core.get_averaged_spectra(spectra_count=number_of_spectra)))
 
 
 if __name__ == "__main__":
