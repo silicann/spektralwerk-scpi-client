@@ -29,6 +29,7 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
     - in general, the `_config` substring was removed from function names.
 - Replace `pydantic.BaseModel` with `dataclass` for `Identity`
 - Replace the separate functions to obtain min/max for exposure time by a `get_exposure_time_context` function. Therefore a SCPIValueContext dataclass is introduced to provide a structured access to the context of a value, e.g. exposure time.
+- Switched from `bump2version` to `bump-my-version`. In addition `makefilet` became obsolete since the release process is integrated in the `pyproject.toml` and can be triggered with `hatch run version {LEVEL}`.
 
 ### Fixed
 

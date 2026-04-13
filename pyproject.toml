@@ -29,6 +29,9 @@ packages = ["spektralwerk_scpi_client"]
 
 [tool.hatch.envs.default]
 
+[tool.hatch.envs.default.scripts]
+version = 'bump-my-version bump {args}'
+
 [tool.hatch.envs.examples.scripts]
 spw_core_demo = "python3 examples/spektralwerk_core_demo.py"
 
