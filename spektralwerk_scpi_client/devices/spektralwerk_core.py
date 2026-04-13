@@ -232,10 +232,10 @@ class SpektralwerkCore:
         Returns:
             spectrum generator
         """
-        output_format = self.get_config_format()
-        spectra_count = self.get_config_count()
+        output_format = self.get_format()
+        spectra_count = self.get_count()
 
-        is_triggered = self.get_config_trigger() != Trigger.NONE
+        is_triggered = self.get_trigger() != Trigger.NONE
 
         delimiter = b"\0" if output_format is OutputFormat.COBS_INT16 else b";"
         for emitted_count, raw_spectrum in enumerate(
@@ -630,7 +630,7 @@ class SpektralwerkCore:
         response = self._request_with_error_check(message=message)
         return {ProcessingStep(step) for step in response.split(",")}
 
-    def set_config_processing(
+    def set_processing(
         self,
         processing_steps: set[ProcessingStep] | None,
     ) -> None:
@@ -668,7 +668,7 @@ class SpektralwerkCore:
         )
         self._request_with_error_check(message=message)
 
-    def get_config_count(self) -> int:
+    def get_count(self) -> int:
         """
         Obtain the current configured number of streamed spectra
 
@@ -678,7 +678,7 @@ class SpektralwerkCore:
         message = f"{SCPI.MEASURE_SPECTRUM_CONFIG_COUNT_QUERY}"
         return int(self._request_with_error_check(message=message))
 
-    def set_config_count(self, count: int) -> None:
+    def set_count(self, count: int) -> None:
         """
         Set the number of spectra to obtain from a single call
 
@@ -689,7 +689,7 @@ class SpektralwerkCore:
         message = SCPI.MEASURE_SPECTRUM_CONFIG_COUNT_COMMAND.with_arguments(count)
         self._request_with_error_check(message=message)
 
-    def get_config_format(self) -> OutputFormat:
+    def get_format(self) -> OutputFormat:
         """
         Obtain the current configured output format
 
@@ -699,7 +699,7 @@ class SpektralwerkCore:
         message = SCPI.MEASURE_SPECTRUM_CONFIG_FORMAT_QUERY
         return OutputFormat(self._request_with_error_check(message=message))
 
-    def set_config_format(self, output_format: OutputFormat):
+    def set_format(self, output_format: OutputFormat):
         """
         Set the output format for in-band and out-of-band spectral emission
 
@@ -712,7 +712,7 @@ class SpektralwerkCore:
         )
         self._request_with_error_check(message=message)
 
-    def get_config_trigger(self) -> Trigger:
+    def get_trigger(self) -> Trigger:
         """
         Obtain the current trigger origin
 
@@ -722,7 +722,7 @@ class SpektralwerkCore:
         message = SCPI.MEASURE_SPECTRUM_CONFIG_TRIGGER_QUERY
         return Trigger(self._request_with_error_check(message=message))
 
-    def set_config_trigger(self, trigger: Trigger) -> None:
+    def set_trigger(self, trigger: Trigger) -> None:
         """
         Set the trigger origin
 
@@ -732,7 +732,7 @@ class SpektralwerkCore:
         message = SCPI.MEASURE_SPECTRUM_CONFIG_TRIGGER_COMMAND.with_arguments(trigger)
         self._request_with_error_check(message=message)
 
-    def get_config_roi(self) -> tuple[int, int]:
+    def get_roi(self) -> tuple[int, int]:
         """
         Obtain the currend configured region-of-interest
 
@@ -750,7 +750,7 @@ class SpektralwerkCore:
             raise SpektralwerkUnexpectedResponseError from exc
         return roi
 
-    def set_config_roi(self, roi: tuple[int, int]) -> None:
+    def set_roi(self, roi: tuple[int, int]) -> None:
         """
         Set the region-of-interest
 

@@ -28,25 +28,25 @@ def finite_spectra_resquest(host, port):
     print(f"device identity: {identity}")
 
     few_spectral_samples = 3
-    current_counts = spw_core.get_config_count()
+    current_counts = spw_core.get_count()
     print(f"Number of counts: {current_counts}")
     if current_counts != few_spectral_samples:
-        spw_core.set_config_count(count=few_spectral_samples)
-        current_counts = spw_core.get_config_count()
+        spw_core.set_count(count=few_spectral_samples)
+        current_counts = spw_core.get_count()
         print(f"Number of counts: {current_counts}")
 
-    current_trigger = spw_core.get_config_trigger()
+    current_trigger = spw_core.get_trigger()
     print(f"Current trigger: {current_trigger}")
     if current_trigger is not Trigger.NONE:
-        spw_core.set_config_trigger(trigger=Trigger.NONE)
-        current_trigger = spw_core.get_config_trigger()
+        spw_core.set_trigger(trigger=Trigger.NONE)
+        current_trigger = spw_core.get_trigger()
         print(f"Current trigger: {current_trigger}")
 
-    current_format = spw_core.get_config_format()
+    current_format = spw_core.get_format()
     print(f"Current format: {current_format}")
     if current_format is not OutputFormat.HUMAN:
-        spw_core.set_config_format(output_format=OutputFormat.HUMAN)
-        current_format = spw_core.get_config_format()
+        spw_core.set_format(output_format=OutputFormat.HUMAN)
+        current_format = spw_core.get_format()
         print(f"Current format: {current_format}")
 
     spectrum = list(spw_core.get_configured_spectra())
@@ -69,25 +69,25 @@ def infinite_stream_request(host, port):
     identity = spw_core.get_identity()
     print(f"device identity: {identity}")
 
-    current_counts = spw_core.get_config_count()
+    current_counts = spw_core.get_count()
     print(f"Number of counts: {current_counts}")
     if current_counts != 0:
-        spw_core.set_config_count(count=0)
-        current_counts = spw_core.get_config_count()
+        spw_core.set_count(count=0)
+        current_counts = spw_core.get_count()
         print(f"Number of counts: {current_counts}")
 
-    current_trigger = spw_core.get_config_trigger()
+    current_trigger = spw_core.get_trigger()
     print(f"Current trigger: {current_trigger}")
     if current_trigger is not Trigger.NONE:
-        spw_core.set_config_trigger(trigger=Trigger.NONE)
-        current_trigger = spw_core.get_config_trigger()
+        spw_core.set_trigger(trigger=Trigger.NONE)
+        current_trigger = spw_core.get_trigger()
         print(f"Current trigger: {current_trigger}")
 
-    current_format = spw_core.get_config_format()
+    current_format = spw_core.get_format()
     print(f"Current format: {current_format}")
     if current_format is not OutputFormat.HUMAN:
-        spw_core.set_config_format(output_format=OutputFormat.HUMAN)
-        current_format = spw_core.get_config_format()
+        spw_core.set_format(output_format=OutputFormat.HUMAN)
+        current_format = spw_core.get_format()
         print(f"Current format: {current_format}")
 
     for index, spectrum in enumerate(spw_core.get_configured_spectra()):
@@ -106,18 +106,18 @@ def finite_triggered_stream(host, port):
     print(f"device identity: {identity}")
 
     # configure the number of spectra which will be emitted
-    current_counts = spw_core.get_config_count()
+    current_counts = spw_core.get_count()
     print(f"Number of counts: {current_counts}")
     if current_counts != number_of_spectra:
-        spw_core.set_config_count(count=number_of_spectra)
-        current_counts = spw_core.get_config_count()
+        spw_core.set_count(count=number_of_spectra)
+        current_counts = spw_core.get_count()
         print(f"Number of counts: {current_counts}")
 
-    current_trigger = spw_core.get_config_trigger()
+    current_trigger = spw_core.get_trigger()
     print(f"Current trigger: {current_trigger}")
     if current_trigger is not trigger_edge:
-        spw_core.set_config_trigger(trigger=trigger_edge)
-        current_trigger = spw_core.get_config_trigger()
+        spw_core.set_trigger(trigger=trigger_edge)
+        current_trigger = spw_core.get_trigger()
         print(f"Current trigger: {current_trigger}")
 
     with spw_core.apply_temporary_timeout(30):

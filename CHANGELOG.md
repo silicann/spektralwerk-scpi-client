@@ -21,11 +21,12 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
     - exposure time
     - average number
 - Rename functions
-    - `get_request_cont` -> `get_config_count`
-    - `set_request_cont` -> `set_config_count`
-    - `set_processing` -> `set_config_processing`
-    - `get_request_roi` -> `get_config_roi`
-    - `set_request_roi` -> `set_config_roi`
+    - `get_request_cont` -> `get_count`
+    - `set_request_cont` -> `set_count`
+    - `set_processing` -> `set_processing`
+    - `get_request_roi` -> `get_roi`
+    - `set_request_roi` -> `set_roi`
+    - in general, the `_config` substring was removed from function names.
 - Replace `pydantic.BaseModel` with `dataclass` for `Identity`
 - Replace the separate functions to obtain min/max for exposure time by a `get_exposure_time_context` function. Therefore a SCPIValueContext dataclass is introduced to provide a structured access to the context of a value, e.g. exposure time.
 

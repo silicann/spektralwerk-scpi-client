@@ -41,8 +41,8 @@ def main(host, port):
 
     # restrict the spectral emission to the pixel 100 ..200
     region_of_interest = (100, 200)
-    spw_core.set_config_roi(roi=region_of_interest)
-    spw_core.set_config_processing(processing_steps=[ProcessingStep.ROI])
+    spw_core.set_roi(roi=region_of_interest)
+    spw_core.set_processing(processing_steps={ProcessingStep.ROI})
     number_sample_spectra = 1
     spectrum = list(spw_core.get_spectra(number_sample_spectra))
     print(f"truncated spectrum: {spectrum}")
@@ -50,7 +50,7 @@ def main(host, port):
     # apply pixel binning
     binning_width = 50
     spw_core.set_binnig_width(width=binning_width)
-    spw_core.set_config_processing(processing_steps=[ProcessingStep.BINNING])
+    spw_core.set_processing(processing_steps={ProcessingStep.BINNING})
     number_sample_spectra = 1
     spectrum = list(spw_core.get_spectra(number_sample_spectra))
     print(f"binned spectra: {spectrum}")
