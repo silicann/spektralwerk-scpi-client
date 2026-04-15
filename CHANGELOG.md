@@ -13,7 +13,7 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 - `binning` SCPI endpoints
 - Processing steps for `binning` and `roi` handling
     - Examples for `binning` and `roi` are added
-
+- Input and output trigger handling
 
 ### Changed
 

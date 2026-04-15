@@ -8,7 +8,11 @@ The default IP is `127.0.0.1` (localhost) and the default port is `5025`.
 """
 
 from spektralwerk_scpi_client.devices import SpektralwerkCore
-from spektralwerk_scpi_client.scpi.mnemonics import OutputFormat, Trigger
+from spektralwerk_scpi_client.scpi.mnemonics import (
+    OutputFormat,
+    Trigger,
+    TriggerOutputSource,
+)
 
 DEFAULT_HOST: str = "127.0.0.1"
 DEFAULT_PORT: str = "5025"
@@ -35,11 +39,11 @@ def finite_spectra_resquest(host, port):
         current_counts = spw_core.get_count()
         print(f"Number of counts: {current_counts}")
 
-    current_trigger = spw_core.get_trigger()
+    current_trigger = spw_core.get_trigger_condition()
     print(f"Current trigger: {current_trigger}")
     if current_trigger is not Trigger.NONE:
-        spw_core.set_trigger(trigger=Trigger.NONE)
-        current_trigger = spw_core.get_trigger()
+        spw_core.set_trigger_condition(trigger=Trigger.NONE)
+        current_trigger = spw_core.get_trigger_condition()
         print(f"Current trigger: {current_trigger}")
 
     current_format = spw_core.get_format()
@@ -48,6 +52,11 @@ def finite_spectra_resquest(host, port):
         spw_core.set_format(output_format=OutputFormat.HUMAN)
         current_format = spw_core.get_format()
         print(f"Current format: {current_format}")
+
+    # disables output trigger if enabled since the timeout must be adjusted otherwise
+    current_output_source = spw_core.get_output_source()
+    if current_output_source is not TriggerOutputSource.MANUAL:
+        spw_core.set_output_source(source=TriggerOutputSource.MANUAL)
 
     spectrum = list(spw_core.get_configured_spectra())
     print(f"Obtained spectra: {spectrum}")
@@ -76,11 +85,11 @@ def infinite_stream_request(host, port):
         current_counts = spw_core.get_count()
         print(f"Number of counts: {current_counts}")
 
-    current_trigger = spw_core.get_trigger()
+    current_trigger = spw_core.get_trigger_condition()
     print(f"Current trigger: {current_trigger}")
     if current_trigger is not Trigger.NONE:
-        spw_core.set_trigger(trigger=Trigger.NONE)
-        current_trigger = spw_core.get_trigger()
+        spw_core.set_trigger_condition(trigger=Trigger.NONE)
+        current_trigger = spw_core.get_trigger_condition()
         print(f"Current trigger: {current_trigger}")
 
     current_format = spw_core.get_format()
@@ -90,14 +99,31 @@ def infinite_stream_request(host, port):
         current_format = spw_core.get_format()
         print(f"Current format: {current_format}")
 
+    # disables output trigger if enabled since the timeout must be adjusted otherwise
+    current_output_source = spw_core.get_output_source()
+    if current_output_source is not TriggerOutputSource.MANUAL:
+        spw_core.set_output_source(source=TriggerOutputSource.MANUAL)
+
     for index, spectrum in enumerate(spw_core.get_configured_spectra()):
         print(f"{index}: {spectrum}")
 
 
 def finite_triggered_stream(host, port):
+    """
+    Usage example for a triggered finite in-band stream of spectra
+
+    This example demonstrates the triggered finite in-band stream of spectra. In
+    advance, the output format and the trigger are set. In addition, a delayed output
+    trigger signal is toggled, which might control additional devices (shutter, light
+    source, camera, ...).
+
+    Despite the final stream, the client must close the connection. Otherwise it is kept
+    open and listens for input signals.
+    """
     # configuration
-    number_of_spectra = 10000
-    trigger_edge = Trigger.TRIGGER_FALLING
+    number_of_spectra = 10
+    # listens on any signal change
+    trigger_condition = Trigger.INPUT_BOTH
 
     spw_core = SpektralwerkCore(host=host, port=port)
 
@@ -113,12 +139,15 @@ def finite_triggered_stream(host, port):
         current_counts = spw_core.get_count()
         print(f"Number of counts: {current_counts}")
 
-    current_trigger = spw_core.get_trigger()
+    current_trigger = spw_core.get_trigger_condition()
     print(f"Current trigger: {current_trigger}")
-    if current_trigger is not trigger_edge:
-        spw_core.set_trigger(trigger=trigger_edge)
-        current_trigger = spw_core.get_trigger()
+    if current_trigger is not trigger_condition:
+        spw_core.set_trigger_condition(trigger=trigger_condition)
+        current_trigger = spw_core.get_trigger_condition()
         print(f"Current trigger: {current_trigger}")
+
+    spw_core.set_output_source(source=TriggerOutputSource.SAMPLING)
+    spw_core.set_output_delay(start_delay=1.1, end_delay=1.1)
 
     with spw_core.apply_temporary_timeout(30):
         for index, spec in enumerate(spw_core.get_configured_spectra()):

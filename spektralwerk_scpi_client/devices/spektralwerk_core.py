@@ -23,6 +23,7 @@ from spektralwerk_scpi_client.scpi.mnemonics import (
     OutputFormat,
     ProcessingStep,
     Trigger,
+    TriggerOutputSource,
 )
 from spektralwerk_scpi_client.utils.convert import decoded_spectrum
 
@@ -235,7 +236,7 @@ class SpektralwerkCore:
         output_format = self.get_format()
         spectra_count = self.get_count()
 
-        is_triggered = self.get_trigger() != Trigger.NONE
+        is_triggered = self.get_trigger_condition() != Trigger.NONE
 
         delimiter = b"\0" if output_format is OutputFormat.COBS_INT16 else b";"
         for emitted_count, raw_spectrum in enumerate(
@@ -712,22 +713,22 @@ class SpektralwerkCore:
         )
         self._request_with_error_check(message=message)
 
-    def get_trigger(self) -> Trigger:
+    def get_trigger_condition(self) -> Trigger:
         """
-        Obtain the current trigger origin
+        Obtain the current trigger condition
 
         Returns:
-            the configured trigger origin
+            the configured trigger condition
         """
         message = SCPI.MEASURE_SPECTRUM_CONFIG_TRIGGER_QUERY
         return Trigger(self._request_with_error_check(message=message))
 
-    def set_trigger(self, trigger: Trigger) -> None:
+    def set_trigger_condition(self, trigger: Trigger) -> None:
         """
-        Set the trigger origin
+        Set the trigger condition
 
         Args:
-            trigger: the event which starts spectral emission
+            trigger: the condition which starts spectral emission
         """
         message = SCPI.MEASURE_SPECTRUM_CONFIG_TRIGGER_COMMAND.with_arguments(trigger)
         self._request_with_error_check(message=message)
@@ -782,6 +783,105 @@ class SpektralwerkCore:
         return self._spectrum_generator(
             spectra_count=spectra_count, output_format=output_format
         )
+
+    def get_input_trigger_level(self) -> int:
+        """
+        Obtain the current level of the input trigger
+
+        The level of the input trigger is either `0` (low) or `1` high. The input
+        trigger level is controlled by some other device and can not be set from the
+        Spektralwerk.
+
+        Returns:
+            current level of the input trigger
+        """
+        message = SCPI.CONTROL_INPUT_LEVEL_QUERY
+        return int(self._request_with_error_check(message=message))
+
+    def get_output_delay(self) -> tuple[float, float]:
+        """
+        Obtain the current start and end delay
+
+        Returns
+            a tuple containing the start and end delay
+        """
+        delay_queries = [
+            SCPI.CONTROL_OUTPUT_DELAY_START_QUERY,
+            SCPI.CONTROL_OUTPUT_DELAY_END_QUERY,
+        ]
+        delay_message = ";".join(delay_queries)
+        [start_delay, end_delay] = self._request_with_error_check(
+            message=delay_message
+        ).split(";")
+        return (float(start_delay), float(end_delay))
+
+    def set_output_delay(
+        self, start_delay: float | None = None, end_delay: float | None = None
+    ) -> None:
+        """
+        Set the either start or end delay or both.
+
+        Args:
+            start_delay: delay in [s] between the change of the output level and the
+                emission of spectra
+            end_delay: delay in [s] between the end of the spectral acquisition and the
+                change of the level of the output trigger
+        """
+        messages = []
+        if start_delay is not None:
+            messages.append(
+                SCPI.CONTROL_OUTPUT_DELAY_START_COMMAND.with_arguments(start_delay)
+            )
+        if end_delay is not None:
+            messages.append(
+                SCPI.CONTROL_OUTPUT_DELAY_END_COMMAND.with_arguments(end_delay)
+            )
+        message = ";".join(messages)
+        self._request_with_error_check(message=message)
+
+    def get_output_source(self) -> TriggerOutputSource:
+        """
+        Obtain the current output source
+
+        The output source determines which event will change the level of the output
+        trigger.
+
+        Returns:
+            source for output trigger level changes
+        """
+        message = SCPI.CONTROL_OUTPUT_SOURCE_QUERY
+        return TriggerOutputSource(self._request_with_error_check(message=message))
+
+    def set_output_source(self, source: TriggerOutputSource) -> None:
+        """
+        Set the source for output trigger level changes
+
+        Args:
+            source for level changes
+        """
+        message = SCPI.CONTROL_OUTPUT_SOURCE_COMMAND.with_arguments(source)
+        self._request_with_error_check(message=message)
+
+    def get_output_trigger_level(self) -> int:
+        """
+        Obtain the current level of the output trigger
+
+        The level of the output trigger is either `0` (low) or `1` (high).
+
+        Returns:
+            current level of the output trigger
+        """
+        message = SCPI.CONTROL_OUTPUT_LEVEL_TARGET_QUERY
+        return int(self._request_with_error_check(message=message))
+
+    def set_output_trigger_level(self, level: int) -> None:
+        """
+        Set the current level of the output trigger
+
+        The level of the output trigger can be set either to `0` (low) or `1` high
+        """
+        message = SCPI.CONTROL_OUTPUT_LEVEL_TARGET_COMMAND.with_arguments(level)
+        self._request_with_error_check(message=message)
 
     def process_request_with_error_check(self, command: str) -> str:
         """

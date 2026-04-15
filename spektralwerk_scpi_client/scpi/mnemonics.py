@@ -21,9 +21,14 @@ class OutputFormat(enum.StrEnum):
 
 class Trigger(enum.StrEnum):
     NONE = "none"
-    TRIGGER_RISING = "input,rising"
-    TRIGGER_FALLING = "input,falling"
-    TRIGGER_ANY = "input,any"
+    INPUT_RISING = "input,rising"
+    INPUT_FALLING = "input,falling"
+    INPUT_BOTH = "input,both"
+
+
+class TriggerOutputSource(enum.StrEnum):
+    MANUAL = "manual"
+    SAMPLING = "sampling"
 
 
 class Format(typing.NamedTuple):
