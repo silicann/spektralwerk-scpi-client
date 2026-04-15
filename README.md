@@ -20,12 +20,18 @@ The API supports two ways of obtaining spectra:
   - set/get offset voltage
   - set/get light and dark reference spectrum
   - get pixel count and wavelengths array of the spectrometer
-  - get single raw spectrum and averaged raw spectrum
+  - get single/averaged raw spectrum and continuous emisison of spectra
+  - configuration of processing steps
+    - set/get output format of the Spektralwerk Core
+    - set/get the number of emitted spectra
+    - set/get region-of-interest
+    - set/get binning width
 
 ## Requirements
 
 - Python3
 - [hatch](https://hatch.pypa.io/) for development (e.g. `pipx install hatch`)
+- [bump-my-version](https://github.com/callowayproject/bump-my-version) for semantic verioning
 
 ## Usage
 
@@ -43,6 +49,20 @@ An example can be found in the [`examples`](./examples/) directory.
 export SPW_HOST="<hostname or IP>"
 export SPW_PORT="<port number>"
 hatch run examples:spw_core_demo
+```
+
+## Development
+
+`bump-my-version` for increasing version of `spektralwerk-scpi-client`.
+The configuration of `bump-my-version` is located in `.bumpversion.toml` and `pyproject.toml`.
+To increase the version these commands can be used:
+
+```shell
+# Provides an overview of the next versions.
+hatch run show-version
+
+# Create a new release.
+hatch run version {major|minor|patch|pre_n|pre_l }
 ```
 
 ## License

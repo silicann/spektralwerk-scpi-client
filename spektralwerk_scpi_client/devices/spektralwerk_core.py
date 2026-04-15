@@ -232,10 +232,10 @@ class SpektralwerkCore:
         Returns:
             spectrum generator
         """
-        output_format = self.get_config_format()
-        spectra_count = self.get_config_count()
+        output_format = self.get_format()
+        spectra_count = self.get_count()
 
-        is_triggered = self.get_config_trigger() != Trigger.NONE
+        is_triggered = self.get_trigger() != Trigger.NONE
 
         delimiter = b"\0" if output_format is OutputFormat.COBS_INT16 else b";"
         for emitted_count, raw_spectrum in enumerate(
@@ -619,24 +619,56 @@ class SpektralwerkCore:
         """
         return self._configured_spectrum_generator()
 
-    def set_config_processing(
+    def get_processing(self) -> set[ProcessingStep]:
+        """
+        Obtain the configured processing steps
+
+        Returns:
+            set with the configured processing steps
+        """
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_PROCESSING_QUERY
+        response = self._request_with_error_check(message=message)
+        return {ProcessingStep(step) for step in response.split(",")}
+
+    def set_processing(
         self,
-        processing_steps: list[ProcessingStep] | None,
+        processing_steps: set[ProcessingStep] | None,
     ) -> None:
         """
         Set processing steps for requesting spectral sample
 
         Args:
-            processing_steps: list of processing steps. If `None` is passed, the
+            processing_steps: set of processing steps. If `None` is passed, the
                 currently valid processing steps will be removed.
         """
         message = f"{SCPI.MEASURE_SPECTRUM_CONFIG_PROCESSING_COMMAND}"
-
         if processing_steps:
-            message = f"{message} {','.join([step.value for step in processing_steps])}"
+            message = f"{message} {','.join(processing_steps)}"
         self._request_with_error_check(message=message)
 
-    def get_config_count(self) -> int:
+    def get_binning_width(self) -> int:
+        """
+        Obtain the current binning width
+
+        Returns:
+            configured number of merged pixels
+        """
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_BINNING_WIDTH_QUERY
+        return int(self._request_with_error_check(message=message))
+
+    def set_binnig_width(self, width: int) -> None:
+        """
+        Set the number of merged pixel
+
+        Args:
+            width: the number of merged pixel
+        """
+        message = SCPI.MEASURE_SPECTRUM_CONFIG_BINNING_WIDTH_COMMAND.with_arguments(
+            width
+        )
+        self._request_with_error_check(message=message)
+
+    def get_count(self) -> int:
         """
         Obtain the current configured number of streamed spectra
 
@@ -646,7 +678,7 @@ class SpektralwerkCore:
         message = f"{SCPI.MEASURE_SPECTRUM_CONFIG_COUNT_QUERY}"
         return int(self._request_with_error_check(message=message))
 
-    def set_config_count(self, count: int) -> None:
+    def set_count(self, count: int) -> None:
         """
         Set the number of spectra to obtain from a single call
 
@@ -657,7 +689,7 @@ class SpektralwerkCore:
         message = SCPI.MEASURE_SPECTRUM_CONFIG_COUNT_COMMAND.with_arguments(count)
         self._request_with_error_check(message=message)
 
-    def get_config_format(self) -> OutputFormat:
+    def get_format(self) -> OutputFormat:
         """
         Obtain the current configured output format
 
@@ -667,7 +699,7 @@ class SpektralwerkCore:
         message = SCPI.MEASURE_SPECTRUM_CONFIG_FORMAT_QUERY
         return OutputFormat(self._request_with_error_check(message=message))
 
-    def set_config_format(self, output_format: OutputFormat):
+    def set_format(self, output_format: OutputFormat):
         """
         Set the output format for in-band and out-of-band spectral emission
 
@@ -680,7 +712,7 @@ class SpektralwerkCore:
         )
         self._request_with_error_check(message=message)
 
-    def get_config_trigger(self) -> Trigger:
+    def get_trigger(self) -> Trigger:
         """
         Obtain the current trigger origin
 
@@ -690,7 +722,7 @@ class SpektralwerkCore:
         message = SCPI.MEASURE_SPECTRUM_CONFIG_TRIGGER_QUERY
         return Trigger(self._request_with_error_check(message=message))
 
-    def set_config_trigger(self, trigger: Trigger) -> None:
+    def set_trigger(self, trigger: Trigger) -> None:
         """
         Set the trigger origin
 
@@ -700,7 +732,7 @@ class SpektralwerkCore:
         message = SCPI.MEASURE_SPECTRUM_CONFIG_TRIGGER_COMMAND.with_arguments(trigger)
         self._request_with_error_check(message=message)
 
-    def get_config_roi(self) -> tuple[int, int]:
+    def get_roi(self) -> tuple[int, int]:
         """
         Obtain the currend configured region-of-interest
 
@@ -718,7 +750,7 @@ class SpektralwerkCore:
             raise SpektralwerkUnexpectedResponseError from exc
         return roi
 
-    def set_config_roi(self, roi: tuple[int, int]) -> None:
+    def set_roi(self, roi: tuple[int, int]) -> None:
         """
         Set the region-of-interest
 
@@ -733,6 +765,8 @@ class SpektralwerkCore:
 
     def get_averaged_spectra(
         self,
+        spectra_count: int | None = 1,
+        output_format: OutputFormat | None = None,
     ) -> typing.Generator[Spectrum, typing.Any]:
         """
         Obtain averaged spectra
@@ -744,9 +778,9 @@ class SpektralwerkCore:
             averaged spectra
         """
         # adjust processing steps to obtain averaged spectra; other processing steps are removed
-        self.set_config_processing([ProcessingStep.AVERAGE])
+        self.set_processing({ProcessingStep.AVERAGE})
         return self._spectrum_generator(
-            spectra_count=1, output_format=OutputFormat.HUMAN
+            spectra_count=spectra_count, output_format=output_format
         )
 
     def process_request_with_error_check(self, command: str) -> str:

@@ -10,6 +10,9 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 - Functions for requesting output format and change the output format on the Spektralwerk Core
 - Functions for requesting trigger and change trigger in the Spektralwerk Core
 - A spectrum generator which does not alter the current configuration on the Spektralwerk Core
+- `binning` SCPI endpoints
+- Processing steps for `binning` and `roi` handling
+    - Examples for `binning` and `roi` are added
 
 
 ### Changed
@@ -18,13 +21,15 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
     - exposure time
     - average number
 - Rename functions
-    - `get_request_cont` -> `get_config_count`
-    - `set_request_cont` -> `set_config_count`
-    - `set_processing` -> `set_config_processing`
-    - `get_request_roi` -> `get_config_roi`
-    - `set_request_roi` -> `set_config_roi`
+    - `get_request_cont` -> `get_count`
+    - `set_request_cont` -> `set_count`
+    - `set_processing` -> `set_processing`
+    - `get_request_roi` -> `get_roi`
+    - `set_request_roi` -> `set_roi`
+    - in general, the `_config` substring was removed from function names.
 - Replace `pydantic.BaseModel` with `dataclass` for `Identity`
 - Replace the separate functions to obtain min/max for exposure time by a `get_exposure_time_context` function. Therefore a SCPIValueContext dataclass is introduced to provide a structured access to the context of a value, e.g. exposure time.
+- Switched from `bump2version` to `bump-my-version`. In addition `makefilet` became obsolete since the release process is integrated in the `pyproject.toml` and can be triggered with `hatch run version {LEVEL}`.
 
 ### Fixed
 

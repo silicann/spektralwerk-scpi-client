@@ -1,0 +1,17 @@
+[tool.bumpversion]
+current_version = "0.4.2"
+tag = true
+commit = true
+commit_args = "--no-verify"
+
+[tool.bumpversion.parts.pre_l]
+values = ["dev", "rc", "final"]
+optional_value = "final"
+
+[[tool.bumpversion.files]]
+filename = "VERSION"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
