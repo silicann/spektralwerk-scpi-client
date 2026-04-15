@@ -765,6 +765,8 @@ class SpektralwerkCore:
 
     def get_averaged_spectra(
         self,
+        spectra_count: int | None = 1,
+        output_format: OutputFormat | None = None,
     ) -> typing.Generator[Spectrum, typing.Any]:
         """
         Obtain averaged spectra
@@ -778,7 +780,7 @@ class SpektralwerkCore:
         # adjust processing steps to obtain averaged spectra; other processing steps are removed
         self.set_processing({ProcessingStep.AVERAGE})
         return self._spectrum_generator(
-            spectra_count=1, output_format=OutputFormat.HUMAN
+            spectra_count=spectra_count, output_format=output_format
         )
 
     def process_request_with_error_check(self, command: str) -> str:
