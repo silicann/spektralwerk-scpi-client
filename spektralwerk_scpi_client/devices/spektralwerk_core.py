@@ -202,6 +202,7 @@ class SpektralwerkCore:
         Returns:
             spectrum generator
         """
+        output_format = output_format if output_format else OutputFormat.COBS_INT16
         # apply configurations
         # if nothing is specified, an infinite stream cobs encoded is started
         for query in (

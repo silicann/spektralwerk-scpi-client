@@ -34,6 +34,8 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 ### Fixed
 
 - Tolerate empty records in a stream response. There are used as heartbeat messages for keeping the TCP connection alive.
+- Handle the last spectrum in a finite spectra emission. The last spectrum lacks the delimiter. Thus, the last spectrum must be treated separately.
+- Define a fallback output format. If no output format is defined by a user, the `cobs_int16` format is used as fallback output format.
 
 
 ## [0.4.2] - 2026-03-04
