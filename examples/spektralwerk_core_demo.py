@@ -69,7 +69,8 @@ def main(host, port):
     # "stream" 100 raw spectra
     number_of_streamed_spectra = 100
     for current_index, spectrum in enumerate(
-        spw_core.get_spectra(number_of_streamed_spectra)
+        spw_core.get_spectra(number_of_streamed_spectra),
+        start=1,
     ):
         print(f"{current_index}:\n{spectrum}\n")
 

@@ -31,32 +31,16 @@ def finite_spectra_resquest(host, port):
     identity = spw_core.get_identity()
     print(f"device identity: {identity}")
 
+    # adjust configurations
+    # return 3 spectra in a row
+    # disable external trigger
+    # use human readable output format
+    # disable treiggering of external devices
     few_spectral_samples = 3
-    current_counts = spw_core.get_count()
-    print(f"Number of counts: {current_counts}")
-    if current_counts != few_spectral_samples:
-        spw_core.set_count(count=few_spectral_samples)
-        current_counts = spw_core.get_count()
-        print(f"Number of counts: {current_counts}")
-
-    current_trigger = spw_core.get_trigger_condition()
-    print(f"Current trigger: {current_trigger}")
-    if current_trigger is not Trigger.NONE:
-        spw_core.set_trigger_condition(trigger=Trigger.NONE)
-        current_trigger = spw_core.get_trigger_condition()
-        print(f"Current trigger: {current_trigger}")
-
-    current_format = spw_core.get_format()
-    print(f"Current format: {current_format}")
-    if current_format is not OutputFormat.HUMAN:
-        spw_core.set_format(output_format=OutputFormat.HUMAN)
-        current_format = spw_core.get_format()
-        print(f"Current format: {current_format}")
-
-    # disables output trigger if enabled since the timeout must be adjusted otherwise
-    current_output_source = spw_core.get_output_source()
-    if current_output_source is not TriggerOutputSource.MANUAL:
-        spw_core.set_output_source(source=TriggerOutputSource.MANUAL)
+    spw_core.set_count(count=few_spectral_samples)
+    spw_core.set_trigger_condition(trigger=Trigger.NONE)
+    spw_core.set_format(output_format=OutputFormat.HUMAN)
+    spw_core.set_output_source(source=TriggerOutputSource.MANUAL)
 
     spectrum = list(spw_core.get_configured_spectra())
     print(f"Obtained spectra: {spectrum}")
@@ -78,31 +62,15 @@ def infinite_stream_request(host, port):
     identity = spw_core.get_identity()
     print(f"device identity: {identity}")
 
-    current_counts = spw_core.get_count()
-    print(f"Number of counts: {current_counts}")
-    if current_counts != 0:
-        spw_core.set_count(count=0)
-        current_counts = spw_core.get_count()
-        print(f"Number of counts: {current_counts}")
-
-    current_trigger = spw_core.get_trigger_condition()
-    print(f"Current trigger: {current_trigger}")
-    if current_trigger is not Trigger.NONE:
-        spw_core.set_trigger_condition(trigger=Trigger.NONE)
-        current_trigger = spw_core.get_trigger_condition()
-        print(f"Current trigger: {current_trigger}")
-
-    current_format = spw_core.get_format()
-    print(f"Current format: {current_format}")
-    if current_format is not OutputFormat.HUMAN:
-        spw_core.set_format(output_format=OutputFormat.HUMAN)
-        current_format = spw_core.get_format()
-        print(f"Current format: {current_format}")
-
-    # disables output trigger if enabled since the timeout must be adjusted otherwise
-    current_output_source = spw_core.get_output_source()
-    if current_output_source is not TriggerOutputSource.MANUAL:
-        spw_core.set_output_source(source=TriggerOutputSource.MANUAL)
+    # adjust configuration
+    # enable infinite emission of spectra
+    # disable external trigger
+    # use human readable output format
+    # disable treiggering of external devices
+    spw_core.set_count(count=0)
+    spw_core.set_trigger_condition(trigger=Trigger.NONE)
+    spw_core.set_format(output_format=OutputFormat.HUMAN)
+    spw_core.set_output_source(source=TriggerOutputSource.MANUAL)
 
     for index, spectrum in enumerate(spw_core.get_configured_spectra()):
         print(f"{index}: {spectrum}")
@@ -117,37 +85,28 @@ def finite_triggered_stream(host, port):
     trigger signal is toggled, which might control additional devices (shutter, light
     source, camera, ...).
 
-    Despite the final stream, the client must close the connection. Otherwise it is kept
-    open and listens for input signals.
+    The client can close the connection once all relevant trigger signals have been
+    observed.
     """
-    # configuration
-    number_of_spectra = 10
-    # listens on any signal change
-    trigger_condition = Trigger.INPUT_BOTH
-
     spw_core = SpektralwerkCore(host=host, port=port)
 
     # request the device identity
     identity = spw_core.get_identity()
     print(f"device identity: {identity}")
 
+    # adjust configuration
     # configure the number of spectra which will be emitted
-    current_counts = spw_core.get_count()
-    print(f"Number of counts: {current_counts}")
-    if current_counts != number_of_spectra:
-        spw_core.set_count(count=number_of_spectra)
-        current_counts = spw_core.get_count()
-        print(f"Number of counts: {current_counts}")
+    # request a single spectrum
+    # listen on any signal change
+    number_of_spectra = 1
+    spw_core.set_count(count=number_of_spectra)
+    spw_core.set_trigger_condition(trigger=Trigger.INPUT_BOTH)
 
-    current_trigger = spw_core.get_trigger_condition()
-    print(f"Current trigger: {current_trigger}")
-    if current_trigger is not trigger_condition:
-        spw_core.set_trigger_condition(trigger=trigger_condition)
-        current_trigger = spw_core.get_trigger_condition()
-        print(f"Current trigger: {current_trigger}")
-
+    # trigger an external device on each spectral emisision
     spw_core.set_output_source(source=TriggerOutputSource.SAMPLING)
-    spw_core.set_output_delay(start_delay=1.1, end_delay=1.1)
+    # Allow the light source controlled via the output line to warm up for 2.5 seconds
+    # before the exposure begins.
+    spw_core.set_output_delay(start_delay=2.5, end_delay=0)
 
     with spw_core.apply_temporary_timeout(30):
         for index, spec in enumerate(spw_core.get_configured_spectra()):
