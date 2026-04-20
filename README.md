@@ -58,11 +58,8 @@ The configuration of `bump-my-version` is located in `.bumpversion.toml` and `py
 To increase the version these commands can be used:
 
 ```shell
-# Provides an overview of the next versions.
-hatch run show-version
-
 # Create a new release.
-hatch run version {major|minor|patch|pre_n|pre_l }
+hatch run version {major|minor|patch}
 ```
 
 ## License

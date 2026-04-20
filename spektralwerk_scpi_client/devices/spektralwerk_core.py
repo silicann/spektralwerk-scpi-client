@@ -166,7 +166,8 @@ class SpektralwerkCore:
                         # try reading spectra delimited by `delimiter`
                         response = session.read_raw()  # type: ignore[attr-defined]
                         raw_response = response.rstrip(delimiter)
-                        # handle empty responses
+                        # the Spektralwerk Core uses empty responses to keep the communication
+                        # alive.
                         if not raw_response:
                             continue
                         yield raw_response
@@ -334,7 +335,7 @@ class SpektralwerkCore:
 
     def get_pixel_wavelengths(self) -> list[float]:
         """
-        Obtain wavelength value per pixel
+        Obtain the wavelength value per pixel
 
         Returns:
             array with wavelength value for each pixel
@@ -345,7 +346,7 @@ class SpektralwerkCore:
 
     def get_exposure_time(self) -> float:
         """
-        Obtain current exposure time value
+        Obtain the currently configured exposure time value
 
         Returns:
             exposure time value
@@ -395,7 +396,7 @@ class SpektralwerkCore:
 
     def get_average_number(self) -> int:
         """
-        Obtain current value for number of averaged spectra
+        Obtain the currently configured value for number of averaged spectra
 
         Returns:
             current value for number of averaged spectra
@@ -444,7 +445,7 @@ class SpektralwerkCore:
 
     def get_offset_voltage(self) -> float:
         """
-        Obtain current value for spectrometer pixel offset voltage
+        Obtain the currently configured value for spectrometer pixel offset voltage
 
         Returns:
             current value for spectrometer pixel offset voltage
@@ -496,7 +497,7 @@ class SpektralwerkCore:
 
     def get_dark_reference(self) -> list[float]:
         """
-        Obtain current stored dark reference spectrum
+        Obtain currently stored dark reference spectrum
 
         Returns:
             current dark reference spectrum
@@ -539,7 +540,7 @@ class SpektralwerkCore:
 
     def get_light_reference(self) -> list[float]:
         """
-        Obtain current stored light reference spectrum
+        Obtain currently stored light reference spectrum
 
         Returns:
             current light reference spectrum
@@ -630,7 +631,7 @@ class SpektralwerkCore:
 
     def get_processing(self) -> set[ProcessingStep]:
         """
-        Obtain the configured processing steps
+        Obtain the currently configured processing steps
 
         Returns:
             set with the configured processing steps
@@ -657,7 +658,7 @@ class SpektralwerkCore:
 
     def get_binning_width(self) -> int:
         """
-        Obtain the current binning width
+        Obtain the currently configured binning width
 
         Returns:
             configured number of merged pixels
@@ -679,7 +680,7 @@ class SpektralwerkCore:
 
     def get_count(self) -> int:
         """
-        Obtain the current configured number of streamed spectra
+        Obtain the currently configured number of streamed spectra
 
         Returns:
             configured number of counts. A value of `0` will lead to an infinite stream.
@@ -700,7 +701,7 @@ class SpektralwerkCore:
 
     def get_format(self) -> OutputFormat:
         """
-        Obtain the current configured output format
+        Obtain the currently configured output format
 
         Returns:
             configured output format
@@ -723,7 +724,7 @@ class SpektralwerkCore:
 
     def get_trigger_condition(self) -> Trigger:
         """
-        Obtain the current trigger condition
+        Obtain the currently configured trigger condition
 
         Returns:
             the configured trigger condition
@@ -743,7 +744,7 @@ class SpektralwerkCore:
 
     def get_roi(self) -> tuple[int, int]:
         """
-        Obtain the currend configured region-of-interest
+        Obtain the currently configured region-of-interest
 
         The region-of-interest limits the spectral output to the provided pixel range
         when requesting spectra with `MEASure:SPECtrum:REQuest?`
@@ -794,11 +795,10 @@ class SpektralwerkCore:
 
     def get_input_trigger_level(self) -> int:
         """
-        Obtain the current level of the input trigger
+        Obtain the currently configured level of the input trigger
 
-        The level of the input trigger is either `0` (low) or `1` high. The input
-        trigger level is controlled by some other device and can not be set from the
-        Spektralwerk.
+        The level of the input trigger is either `0` (low) or `1` (high). The input
+        trigger level is controlled externally; Spektralwerk can only read its state.
 
         Returns:
             current level of the input trigger
@@ -808,7 +808,7 @@ class SpektralwerkCore:
 
     def get_output_delay(self) -> tuple[float, float]:
         """
-        Obtain the current start and end delay
+        Obtain the currently configured start and end delay
 
         Returns
             a tuple containing the start and end delay
@@ -849,7 +849,7 @@ class SpektralwerkCore:
 
     def get_output_source(self) -> TriggerOutputSource:
         """
-        Obtain the current output source
+        Obtain the currently configured output source
 
         The output source determines which event will change the level of the output
         trigger.
@@ -872,7 +872,7 @@ class SpektralwerkCore:
 
     def get_output_trigger_level(self) -> int:
         """
-        Obtain the current level of the output trigger
+        Obtain the currently configured level of the output trigger
 
         The level of the output trigger is either `0` (low) or `1` (high).
 
