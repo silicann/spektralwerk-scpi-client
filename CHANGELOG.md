@@ -14,6 +14,7 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 - Processing steps for `binning` and `roi` handling
     - Examples for `binning` and `roi` are added
 - Input and output trigger handling
+- Accept `base64` encoded spectra
 
 ### Changed
 

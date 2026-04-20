@@ -49,7 +49,7 @@ def mocked_tcp_server():
         yield example_server
 
 
-def test_specktralwerk_core_connection(monkeypatch):
+def test_spektralwerk_core_connection(monkeypatch):
     """
     Provide a wrong/non-existing host and/or port should raise a ConnectionRefusedError which will
     raise a SpektralwerkConnectionError

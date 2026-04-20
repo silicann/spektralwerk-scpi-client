@@ -37,3 +37,5 @@ class Format(typing.NamedTuple):
 
 
 COBS_INT16_FORMAT = Format("Q", "H")
+BASE64_FLOAT_FORMAT = Format("Q", "f")
+BASE64_INT16_FORMAT = Format("Q", "H")
