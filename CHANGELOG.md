@@ -8,6 +8,7 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 ### Changed
 
 - The current firmware version provides a final delimiter for streamed spectral emission. Thus, the separate handling of the last spectrum becomes obsolete.
+- Rename the environmental variables from `SPW_*` to `SCPI_*` to emphasize the used SCPI interface.
 
 ## [0.5.0] - 2026-04-22
 

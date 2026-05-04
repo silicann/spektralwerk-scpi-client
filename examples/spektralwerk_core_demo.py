@@ -4,7 +4,7 @@ Create a SpektralwerkCore object and request the identity and change basic setti
 
 This example aims to provide basic usage of the `spektralwerk_scpi_client` library.
 
-The environmental variables `SPW_HOST` and `SPW_PORT` can be used to specify host and port.
+The environmental variables `SCPI_HOST` and `SCPI_PORT` can be used to specify host and port.
 The default IP is `127.0.0.1` (localhost) and the default port is `5025`.
 """
 
@@ -87,10 +87,10 @@ if __name__ == "__main__":
     import os
     import sys
 
-    SPW_HOST = os.getenv("SPW_HOST", DEFAULT_HOST)
-    SPW_PORT = os.getenv("SPW_PORT", DEFAULT_PORT)
+    SCPI_HOST = os.getenv("SCPI_HOST", DEFAULT_HOST)
+    SCPI_PORT = os.getenv("SCPI_PORT", DEFAULT_PORT)
 
     try:
-        main(SPW_HOST, int(SPW_PORT))
+        main(SCPI_HOST, int(SCPI_PORT))
     except SpektralwerkError as exc:
         print(f"Spektralwerk exception: {exc}", file=sys.stderr)

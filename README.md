@@ -46,8 +46,8 @@ pip install spektralwerk-scpi-client
 An example can be found in the [`examples`](./examples/) directory.
 
 ```shell
-export SPW_HOST="<hostname or IP>"
-export SPW_PORT="<port number>"
+export SCPI_HOST="<hostname or IP>"
+export SCPI_PORT="<port number>"
 hatch run examples:spw_core_demo
 ```
 
