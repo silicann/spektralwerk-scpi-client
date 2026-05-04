@@ -173,9 +173,6 @@ class SpektralwerkCore:
                         yield raw_response
                     except ConnectionResetError:
                         break
-            # the last spectrum does not contain the delimiter and is read separately.
-            final_spectrum = session.read_raw()  # type: ignore[attr-defined]
-            yield final_spectrum
 
     def _request_with_error_check(self, message: str) -> str:
         _logger.debug("Query sent: %s", message)

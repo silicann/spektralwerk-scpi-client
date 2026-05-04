@@ -3,6 +3,12 @@
 All notable changes of the `spektralwerk_scpi_client` will be documented in this file
 
 
+## [0.5.1] - 2026-...
+
+### Changed
+
+- The current firmware version provides a final delimiter for streamed spectral emission. Thus, the separate handling of the last spectrum becomes obsolete.
+
 ## [0.5.0] - 2026-04-22
 
 ### Added
