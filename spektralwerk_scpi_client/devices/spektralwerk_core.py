@@ -103,7 +103,7 @@ class SpektralwerkCore:
         return response
 
     @contextlib.contextmanager
-    def get_session(self) -> typing.Generator[pyvisa.Resource, None, None]:
+    def get_session(self, retry_count: int = 3) -> typing.Generator[pyvisa.Resource, None, None]:
         """
         Create a session context for reading and writing.
 
@@ -117,31 +117,41 @@ class SpektralwerkCore:
         delay_time = self._wait_until_next_connection_time - time.monotonic()
         if delay_time > 0:
             time.sleep(delay_time)
-        try:
-            with pyvisa.ResourceManager(VISA_BACKEND).open_resource(
-                self._resource,
-                read_termination=self.read_termination,
-                write_termination=self.write_termination,
-            ) as session:
-                # pyvisa timeout is always in [ms]. Thus, the SpektralwerkCore timeout
-                # has to be converted from [s] to [ms]
-                session.timeout = self.timeout * 1000
-                session.clear()
-                try:
-                    yield session
-                except Exception as exc:
-                    # pyvisa raises unspecific exceptions which contain a status code with the
-                    # precise error description.
-                    if str(pyvisa.constants.StatusCode.error_timeout) in str(exc):
-                        error_message = "Connection lost."
-                        raise SpektralwerkTimeoutError(error_message) from None
-                    raise
-                session.close()
-                self._wait_until_next_connection_time = (
-                    time.monotonic() + DEVICE_RECONNECTION_DELAY
-                )
-        except ConnectionRefusedError as exc:
-            raise SpektralwerkConnectionError(self._host, self._port) from exc
+        for attempt in range(1, retry_count + 1):
+            try:
+                with pyvisa.ResourceManager(VISA_BACKEND).open_resource(
+                    self._resource,
+                    read_termination=self.read_termination,
+                    write_termination=self.write_termination,
+                ) as session:
+                    # pyvisa timeout is always in [ms]. Thus, the SpektralwerkCore timeout
+                    # has to be converted from [s] to [ms]
+                    session.timeout = self.timeout * 1000
+                    session.clear()
+                    try:
+                        yield session
+                    except Exception as exc:
+                        # pyvisa raises unspecific exceptions which contain a status code with the
+                        # precise error description.
+                        if str(pyvisa.constants.StatusCode.error_timeout) in str(exc):
+                            error_message = "Connection lost."
+                            raise SpektralwerkTimeoutError(error_message) from None
+                        raise
+                    session.close()
+                    self._wait_until_next_connection_time = (
+                        time.monotonic() + DEVICE_RECONNECTION_DELAY
+                    )
+            except ConnectionRefusedError as exc:
+                if attempt == retry_count:
+                    # The last attempt has failed: give up.
+                    raise SpektralwerkConnectionError(self._host, self._port) from exc
+                else:
+                    # Somehow the device is not ready. Try again.
+                    time.sleep(DEVICE_RECONNECTION_DELAY)
+                    continue
+            else:
+                # The connection attempt was not rejected. There is no need to try again.
+                break
 
     @contextlib.contextmanager
     def apply_temporary_timeout(self, timeout):

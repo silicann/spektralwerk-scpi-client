@@ -3,6 +3,14 @@
 All notable changes of the `spektralwerk_scpi_client` will be documented in this file
 
 
+## [Unreleased]
+
+### Fixed
+
+- Tolerate temporary connection refusal from Spektralwerk device.
+  This may happen immediately after closing a connection.
+
+
 ## [0.5.1] - 2026-05-07
 
 ### Changed
