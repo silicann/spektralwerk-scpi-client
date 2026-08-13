@@ -37,7 +37,7 @@ spw_core_demo = "python3 examples/spektralwerk_core_demo.py"
 spw_core_advanced = "python3 examples/spektralwerk_core_advanced_demo.py"
 
 [tool.hatch.envs.tools.scripts]
-validate_scpi = "python3 tools/scpi_commands_validation.py"
+bootloader = "python3 tools/bootloader_handler/__main__.py {args}"
 
 [tool.hatch.envs.style]
 extra-dependencies = [

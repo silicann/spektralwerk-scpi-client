@@ -5,6 +5,12 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 
 ## [Unreleased]
 
+### Added
+
+- Function for requesting the current firmware version.
+- SCPI endpoint for accessing the bootloader context.
+- bootloader handler tool for access/leave bootloader context and change Spektralwerk fiormware.
+
 ### Fixed
 
 - Tolerate temporary connection refusal from Spektralwerk device.

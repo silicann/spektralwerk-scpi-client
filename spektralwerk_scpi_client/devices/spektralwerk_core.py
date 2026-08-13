@@ -103,7 +103,9 @@ class SpektralwerkCore:
         return response
 
     @contextlib.contextmanager
-    def get_session(self, retry_count: int = 3) -> typing.Generator[pyvisa.Resource, None, None]:
+    def get_session(
+        self, retry_count: int = 3
+    ) -> typing.Generator[pyvisa.Resource, None, None]:
         """
         Create a session context for reading and writing.
 

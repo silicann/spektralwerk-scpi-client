@@ -31,7 +31,7 @@ The API supports two ways of obtaining spectra:
 
 - Python3
 - [hatch](https://hatch.pypa.io/) for development (e.g. `pipx install hatch`)
-- [bump-my-version](https://github.com/callowayproject/bump-my-version) for semantic verioning
+- [bump-my-version](https://github.com/callowayproject/bump-my-version) for semantic versioning
 
 ## Usage
 
@@ -50,6 +50,13 @@ export SCPI_HOST="<hostname or IP>"
 export SCPI_PORT="<port number>"
 hatch run examples:spw_core_demo
 ```
+
+## Tools
+
+The `tools` directory contains additional scripts to handle:
+
+- firmware update of the Spektralwerk.
+
 
 ## Development
 
