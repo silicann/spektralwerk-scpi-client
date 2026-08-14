@@ -24,7 +24,7 @@ style:typing:
 style:fmt:
   stage: style
   script:
-    - hatch fmt
+    - hatch check fmt
 
 style:codespell:
   stage: style
