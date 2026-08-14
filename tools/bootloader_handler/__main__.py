@@ -15,6 +15,7 @@ class SpektralwerkAction(enum.Enum):
     ENTER_BOOTLOADER = "enter-bootloader"
     ENTER_APPLICATION = "enter-application"
     UPLOAD_APPLICATION = "upload-application"
+    FIRMWARE_VERSION = "get-firmware-version"
 
     def execute(self, spektralwerk: SpektralwerkCoreBootloader, args):
         if self is self.ENTER_BOOTLOADER:
