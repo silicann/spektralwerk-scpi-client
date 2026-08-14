@@ -17,7 +17,7 @@ from spektralwerk_scpi_client.exceptions import (
 )
 from spektralwerk_scpi_client.scpi import SCPIErrorMessage
 from spektralwerk_scpi_client.scpi.commands import (
-    SCPICommand as SCPI,  # noqa N814
+    SCPICommand as SCPI,
 )
 from spektralwerk_scpi_client.scpi.mnemonics import (
     OutputFormat,
@@ -309,6 +309,16 @@ class SpektralwerkCore:
             serial_number=serial_number,
             firmware_version=firmware_version,
         )
+
+    def get_firmware_version(self) -> str:
+        """
+        Obtain the version of the current firmware
+
+        Returns:
+            Firmware version string
+        """
+        message = SCPI.SYSTEM_FIRMWARE_VERSION_QUERY
+        return self._request_with_error_check(message=message)
 
     def get_spectrometer_peak_count(self) -> int:
         """

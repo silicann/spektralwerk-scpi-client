@@ -114,6 +114,9 @@ class SCPICommand(enum.StrEnum):
     MEASURE_SPECTRUM_REQUEST_RAW_QUERY = "MEASure:SPECtrum:REQuest:RAW?"
     MEASURE_SPECTRUM_SAMPLE_RAW_AVERAGED_QUERY = "MEASure:SPECtrum:SAMPle:RAW:AVERaged?"
 
+    SYSTEM_ACTION_BOOTLOADER_ENTER_COMMAND = "SYSTem:ACTion:BOOTloader:ENTer"
+    SYSTEM_FIRMWARE_VERSION_QUERY = "SYSTem:FIRMware:VERSion?"
+
     def with_arguments(self, *args: str | float | list[float] | None) -> str:
         """Assemble a query with arguments"""
         args_string = ",".join(str(item) for item in args)
