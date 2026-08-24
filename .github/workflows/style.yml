@@ -18,7 +18,7 @@ jobs:
           PIPX_BIN_DIR=/usr/local/bin PIPX_HOME=/opt/pipx pipx install hatch
       - name: Check formatting
         run: |
-          hatch fmt
+          hatch check code
       - name: Check typing with mypy
         run: |
           hatch run style:typing
