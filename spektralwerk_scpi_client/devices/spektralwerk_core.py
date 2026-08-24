@@ -17,7 +17,7 @@ from spektralwerk_scpi_client.exceptions import (
 )
 from spektralwerk_scpi_client.scpi import SCPIErrorMessage
 from spektralwerk_scpi_client.scpi.commands import (
-    SCPICommand as SCPI,
+    SCPICommand as SCPI,  # noqa N814
 )
 from spektralwerk_scpi_client.scpi.mnemonics import (
     OutputFormat,

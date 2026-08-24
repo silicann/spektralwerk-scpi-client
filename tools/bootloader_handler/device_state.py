@@ -45,18 +45,18 @@ class SpektralwerkState(enum.Enum):
     def switch_to_state(self, spektralwerk: SpektralwerkCoreBootloader):
         try:
             current_state = self.get_current_state(spektralwerk)
-        except SpektralwerkConnectionError as exc:
-            logger.error("%s", exc)
+        except SpektralwerkConnectionError:
+            logger.exception("%s")
         original_state = current_state
         wanted_state = self
 
         if current_state is SpektralwerkState.UNKNOWN:
-            logger.error(
+            logger.exception(
                 "Cannot switch to %s because the current device state is unknown.",
                 wanted_state,
             )
             return False
-        elif current_state is wanted_state:
+        if current_state is wanted_state:
             return True
 
         for attempt in range(1, 5):
@@ -66,7 +66,7 @@ class SpektralwerkState(enum.Enum):
                 )
             except SpektralwerkConnectionError as exc:
                 raise SpektralwerkConnectionError(
-                    spektralwerk._host, spektralwerk._port
+                    spektralwerk._host, spektralwerk._port  # noqa SLF001
                 ) from exc
             current_state = self.get_current_state(spektralwerk)
 
@@ -103,6 +103,5 @@ class SpektralwerkState(enum.Enum):
                 spektralwerk.exit_bootloader()
                 # spektralwerk.reboot_from_bootloader()
         else:
-            raise NotImplementedError(
-                f"I have no idea how to switch from '{current_state}' to {target_state}."
-            )
+            error_msg = f"I have no idea how to switch from '{current_state}' to {target_state}."
+            raise NotImplementedError(error_msg)

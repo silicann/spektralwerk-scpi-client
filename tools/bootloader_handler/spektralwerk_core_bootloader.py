@@ -11,7 +11,7 @@ from spektralwerk_scpi_client.exceptions import (
     SpektralwerkTimeoutError,
 )
 from spektralwerk_scpi_client.scpi.commands import (
-    SCPICommand as SCPI,
+    SCPICommand as SCPI,  # noqa N814
 )
 
 logger = logging.getLogger(__name__)
@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 VISA_TIMEOUT_CODE = "-1073807339"
 BOOTLOADER_TIMEOUT = 10
 REBOOT_DURATION = 80
+MAX_RETRY_ATTEMPTS = 4
 
 
 class SpektralwerkCoreBootloader(SpektralwerkCore):
@@ -115,13 +116,13 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
         """
         for attempt in range(1, 5):
             response = self._send_to_bootloader(self.BOOTLOADER_EXIT_MSG)
-            if response.get("success"):
+            if response is not None and response.get("success"):
                 logger.debug(
                     "Leaving bootloader context and switch to application context."
                 )
                 time.sleep(60)
                 return
-            if attempt < 4:
+            if attempt < MAX_RETRY_ATTEMPTS:
                 time.sleep(5)
                 logger.warning("Leaving bootloader context failed. Retry: %s", attempt)
             else:
@@ -144,7 +145,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
                 # rebooting and recovering to application context takes about 70 seconds.
                 time.sleep(REBOOT_DURATION)
                 break
-            if attempt < 4:
+            if attempt < MAX_RETRY_ATTEMPTS:
                 time.sleep(5)
                 logger.warning(
                     "Rebooting from bootloader context failed. Retry: %s.", attempt
@@ -205,11 +206,12 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
 
             logger.info("Upload complete")
             time.sleep(70)
-            return True
 
         except ConnectionRefusedError:
             logger.exception("Cannot connect and upload firmware image.")
             return False
+        else:
+            return True
 
         finally:
             firmware_blob.close()
@@ -222,10 +224,10 @@ def log_progress(sent: int, total: int) -> None:
     percent = 100.0 if total == 0 else min(sent / total * 100, 100.0)
     progress = int(percent // PROGRESS_LOG_STEP) * PROGRESS_LOG_STEP
 
-    if sent < total and progress <= getattr(log_progress, "_last_progress", -1):
+    if sent < total and progress <= getattr(log_progress, "last_progress", -1):
         return
 
-    log_progress._last_progress = progress
+    log_progress.last_progress = progress
     logger.info(
         "Firmware upload progress: %.1f%% (%d/%d bytes)",
         percent,

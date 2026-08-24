@@ -49,8 +49,8 @@ class SpektralwerkAction(enum.Enum):
                 "Current firmware version: %s", spektralwerk.get_firmware_version()
             )
             return True
-        else:
-            raise NotImplementedError(f"Missing implementation for action: {self}")
+        error_msg = f"Missing implementation for action: {self}"
+        raise NotImplementedError(error_msg)
 
 
 def get_parsed_args():
@@ -98,8 +98,8 @@ def main():
     action = SpektralwerkAction(args.action)
     try:
         action.execute(spektralwerk, args)
-    except SpektralwerkConnectionError as exc:
-        logger.error("%s", exc)
+    except SpektralwerkConnectionError:
+        logger.exception("%s")
         return 1
     except KeyboardInterrupt:
         pass
