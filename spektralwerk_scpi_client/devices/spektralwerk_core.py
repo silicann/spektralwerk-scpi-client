@@ -139,10 +139,10 @@ class SpektralwerkCore:
                             error_message = "Connection lost."
                             raise SpektralwerkTimeoutError(error_message) from None
                         raise
-                    session.close()
-                    self._wait_until_next_connection_time = (
-                        time.monotonic() + DEVICE_RECONNECTION_DELAY
-                    )
+                    finally:
+                        self._wait_until_next_connection_time = (
+                            time.monotonic() + DEVICE_RECONNECTION_DELAY
+                        )
             except ConnectionRefusedError as exc:
                 if attempt == retry_count:
                     # The last attempt has failed: give up.
