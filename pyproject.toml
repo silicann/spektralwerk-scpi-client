@@ -1,5 +1,9 @@
 [build-system]
-requires = ["hatchling"]
+requires = [
+  "hatchling",
+  "hatch-sbom",
+  "cyclonedx-bom",
+]
 build-backend = "hatchling.build"
 
 [project]
@@ -18,6 +22,10 @@ dependencies = [
   "pyVISA-py>=0.8.0",
 ]
 
+[tool.hatch]
+lock-envs = true  # create a lock file for all environments if not explicitly denied
+locker = "uv"
+
 [tool.hatch.metadata]
 allow-direct-references = true
 
@@ -28,16 +36,27 @@ packages = ["spektralwerk_scpi_client"]
 packages = ["spektralwerk_scpi_client"]
 
 [tool.hatch.envs.default]
+installer = "uv"
+locked = true
 
 [tool.hatch.envs.default.scripts]
 version = 'bump-my-version bump {args}'
+firmware-updater = "python3 tools/firmware_updater/__main__.py {args}"
 
 [tool.hatch.envs.examples.scripts]
 spw_core_demo = "python3 examples/spektralwerk_core_demo.py"
 spw_core_advanced = "python3 examples/spektralwerk_core_advanced_demo.py"
 
-[tool.hatch.envs.tools.scripts]
-bootloader = "python3 tools/bootloader_handler/__main__.py {args}"
+[tool.hatch.envs.security]
+installer = "uv"
+lock-filename = "pylock.toml"
+dependencies = [
+    "cyclonedx-bom",
+    "pip-audit",
+    "cve-bin-tool",
+    "cryptography>=50.0.0",
+    "httplib2>=0.32.0",
+]
 
 [tool.hatch.envs.style]
 extra-dependencies = [
@@ -50,6 +69,7 @@ typing = ["mypy --install-types --non-interactive {args:spektralwerk_scpi_client
 
 [tool.hatch.envs.hatch-test]
 extra-args = ["-vv"]
+locked = false  # no pylock.toml for test environment
 
 [tool.ruff]
 line-length = 88

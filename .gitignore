@@ -5,3 +5,4 @@ build/
 
 # style checks, etc.
 .coverage*
+.cache/
