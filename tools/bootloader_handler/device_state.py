@@ -66,7 +66,8 @@ class SpektralwerkState(enum.Enum):
                 )
             except SpektralwerkConnectionError as exc:
                 raise SpektralwerkConnectionError(
-                    spektralwerk._host, spektralwerk._port  # noqa SLF001
+                    spektralwerk._host,  # noqa SLF001
+                    spektralwerk._port,  # noqa SLF001
                 ) from exc
             current_state = self.get_current_state(spektralwerk)
 
