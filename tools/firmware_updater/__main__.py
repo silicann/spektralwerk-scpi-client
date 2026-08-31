@@ -3,8 +3,8 @@ import enum
 import logging
 
 from spektralwerk_scpi_client.exceptions import SpektralwerkConnectionError
-from tools.bootloader_handler.device_state import SpektralwerkState
-from tools.bootloader_handler.spektralwerk_core_bootloader import (
+from tools.firmware_updater.device_state import SpektralwerkState
+from tools.firmware_updater.spektralwerk_core_bootloader import (
     SpektralwerkCoreBootloader,
 )
 
