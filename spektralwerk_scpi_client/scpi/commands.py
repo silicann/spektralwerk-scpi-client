@@ -10,6 +10,7 @@ class SCPICommand(enum.StrEnum):
     CLS_COMMAND = "*CLS"
     # query status bits
     ESR_QUERY = "*ESR?"
+    RST_COMMAND = "*RST"
     SYSTEM_ERROR_NEXT_QUERY = "SYSTem:ERRor:NEXT?"
 
     # Spektralwerk SCPI commands

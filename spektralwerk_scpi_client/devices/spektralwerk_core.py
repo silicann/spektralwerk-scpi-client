@@ -314,6 +314,15 @@ class SpektralwerkCore:
             firmware_version=firmware_version,
         )
 
+    def reset(self) -> None:
+        """
+        Reset the Spektralwerk
+
+        All configurable parameter are set to their defaults.
+        """
+        message = SCPI.RST_COMMAND
+        self._request_without_error_check(message)
+
     def get_firmware_version(self) -> str:
         """
         Obtain the version of the current firmware

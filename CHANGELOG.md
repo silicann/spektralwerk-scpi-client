@@ -10,6 +10,8 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 - Function for requesting the current firmware version.
 - SCPI endpoint for accessing the bootloader context.
 - bootloader handler tool for access/leave bootloader context and change Spektralwerk fiormware.
+- Scaling methods.
+- Allow settings reset (`*RST`).
 
 ### Fixed
 
