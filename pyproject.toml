@@ -54,6 +54,7 @@ dependencies = [
     "cyclonedx-bom",
     "pip-audit",
     "cve-bin-tool",
+    "pip>=26.1.2",
     "cryptography>=50.0.0",
     "httplib2>=0.32.0",
 ]
