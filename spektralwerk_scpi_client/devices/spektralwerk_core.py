@@ -610,6 +610,27 @@ class SpektralwerkCore:
         )
         self._request_with_error_check(message=message)
 
+    def get_scaling(self) -> list[float]:
+        """
+        Obtain scaling factors.
+
+        Returns:
+            list with scaling factor for each pixel.
+        """
+        message = SCPI.MEASURE_SPECTRUM_SCALE_QUERY
+        scale = self._request_with_error_check(message=message).split(",")
+        return [float(value) for value in scale]
+
+    def set_scaling(self, new_scaling: list[float]) -> None:
+        """
+        Set the scaling factors.
+
+        Args:
+            list with scaling factors for each pixel.
+        """
+        message = SCPI.MEASURE_SPECTRUM_SCALE_COMMAND.with_arguments(new_scaling)
+        self._request_with_error_check(message=message)
+
     def get_raw_spectrum(self) -> Spectrum:
         """
         Get a single raw spectrum
