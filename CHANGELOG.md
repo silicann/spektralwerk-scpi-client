@@ -13,6 +13,12 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 - Scaling methods.
 - Allow settings reset (`*RST`).
 
+### Changed
+
+- Adopt SCPI command change for light/dark references.
+  - `measure:spectrum:reference:dark:set` -> `measure:spectrum:reference:dark`
+  - `measure:spectrum:reference:light:set` -> `measure:spectrum:reference:light`
+
 ### Fixed
 
 - Tolerate temporary connection refusal from Spektralwerk device.

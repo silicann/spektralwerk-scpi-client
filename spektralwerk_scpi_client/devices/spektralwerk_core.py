@@ -563,7 +563,7 @@ class SpektralwerkCore:
             reference_spectrum: list of spectral intensities which is used as a dark reference
                 spectrum.
         """
-        message = SCPI.MEASURE_SPECTRUM_REFERENCE_DARK_SET_COMMAND.with_arguments(
+        message = SCPI.MEASURE_SPECTRUM_REFERENCE_DARK_COMMAND.with_arguments(
             reference_spectrum
         )
         self._request_with_error_check(message=message)
@@ -605,7 +605,7 @@ class SpektralwerkCore:
         Args:
             reference_spectrum: list of spectral intensities which is used as a light reference spectrum.
         """
-        message = SCPI.MEASURE_SPECTRUM_REFERENCE_LIGHT_SET_COMMAND.with_arguments(
+        message = SCPI.MEASURE_SPECTRUM_REFERENCE_LIGHT_COMMAND.with_arguments(
             reference_spectrum
         )
         self._request_with_error_check(message=message)
