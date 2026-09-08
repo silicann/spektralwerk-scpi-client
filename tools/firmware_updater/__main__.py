@@ -36,7 +36,8 @@ class SpektralwerkAction(enum.Enum):
                     "Failed to enter bootloader state before uploading firmware."
                 )
                 return False
-            spektralwerk.upload_firmware(upload_file)
+            if not spektralwerk.upload_firmware(upload_file):
+                return False
             spektralwerk.reboot_from_bootloader()
             return True
         if self is self.FIRMWARE_VERSION:

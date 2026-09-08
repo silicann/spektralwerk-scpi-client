@@ -17,7 +17,21 @@ from spektralwerk_scpi_client.scpi.commands import (
 logger = logging.getLogger(__name__)
 
 VISA_TIMEOUT_CODE = "-1073807339"
+# Maximum time to wait for a bootloader command response during normal control requests.
 BOOTLOADER_TIMEOUT = 10
+# Short timeout used while polling for bootloader availability after a reset/context switch.
+BOOTLOADER_DETECT_TIMEOUT = 1
+# Delay between bootloader availability probes while waiting for context switches.
+BOOTLOADER_POLL_INTERVAL = 0.5
+# Delay between SCPI availability probes while waiting for application startup.
+APPLICATION_POLL_INTERVAL = 1
+# Per raw SCPI socket probe timeout while waiting for application startup.
+APPLICATION_DETECT_TIMEOUT = 1
+# Minimal SCPI query used to detect whether the application interface is available.
+SCPI_IDENTITY_QUERY = "*IDN?\n"
+# Maximum time to wait for an optional upload result from legacy-compatible bootloaders.
+UPLOAD_RESPONSE_TIMEOUT = 30
+# Maximum time to wait for the application to become reachable after a bootloader reboot.
 REBOOT_DURATION = 80
 MAX_RETRY_ATTEMPTS = 4
 
@@ -37,7 +51,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
 
     SPEKTRALWERK_FIRMWARE_UPLOAD_PORT = 5300
     SPEKTRALWERK_BOOTLOADER_PORT = 5301
-    FIRMWARE_CHUNK_SIZE = 1024
+    FIRMWARE_CHUNK_SIZE = 4096
 
     BOOTLOADER_EXIT_MSG = '{"command": "bootloader-exit"}\n'
     BOOTLOADER_REBOOT_MSG = '{"command": "reboot"}\n'
@@ -50,14 +64,22 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
         The Spektralwerk cen be in one of two different states. In `application` state, the SCPI
         interface is available, while in `bootloader` state only few selected options are available.
 
-        In a first step, the reachability of the SCPI interface is checked. If it fails with
-        `SpektralwerkConnectionError`, the SCPI interface is unavailable and bootloader context is
-        checked. If neither application nor bootloader context is responding, the device state is
-        not known.
+        In a first step, the reachability of the bootloader control interface is checked. If it is
+        unavailable, the SCPI interface is checked. If neither application nor bootloader context is
+        responding, the device state is not known.
 
         Returns:
             current Spektralwerk state information
         """
+        response = self._send_to_bootloader(self.BOOTLOADER_HELP_MSG, log_errors=False)
+        if response is not None and response.get("success") is True:
+            return self.STATE_BOOTLOADER
+
+        logger.info(
+            "Bootloader context unavailable on %s:%s",
+            self._host,
+            self.SPEKTRALWERK_BOOTLOADER_PORT,
+        )
         try:
             # SCPI interface is not available right upon boot of the Spektralwerk. Therefore some additional time is
             # required and the timeout is increased.
@@ -70,19 +92,55 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
                 self._port,
                 exc,
             )
-        else:
-            return self.STATE_APPLICATION
+            return None
+        return self.STATE_APPLICATION
 
-        response = self._send_to_bootloader(self.BOOTLOADER_HELP_MSG)
-        if response is not None and response.get("success") is True:
-            return self.STATE_BOOTLOADER
+    def wait_for_bootloader(self, timeout: float = 120) -> None:
+        """
+        Wait until the bootloader control interface responds.
+        The device can reset quickly or slowly depending on network state.
+        """
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            response = self._send_to_bootloader(
+                self.BOOTLOADER_HELP_MSG,
+                timeout=BOOTLOADER_DETECT_TIMEOUT,
+                log_errors=False,
+            )
+            if response is not None and response.get("success") is True:
+                logger.info("Accessed bootloader context.")
+                return
+            time.sleep(BOOTLOADER_POLL_INTERVAL)
+        raise SpektralwerkConnectionError(self._host, self.SPEKTRALWERK_BOOTLOADER_PORT)
 
-        logger.info(
-            "Bootloader context unavailable on %s:%s",
-            self._host,
-            self.SPEKTRALWERK_BOOTLOADER_PORT,
-        )
-        return None
+    def wait_for_application(self, timeout: float = REBOOT_DURATION) -> None:
+        """
+        Wait until the SCPI application interface responds.
+
+        This replaces the old fixed reboot delay and returns as soon as the application answers a
+        minimal raw SCPI identity query. The raw socket probe avoids pyvisa spinning or blocking
+        indefinitely while the device is rebooting.
+        """
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if self._is_application_available():
+                return
+            time.sleep(APPLICATION_POLL_INTERVAL)
+        raise SpektralwerkConnectionError(self._host, self._port)
+
+    def _is_application_available(self) -> bool:
+        """
+        Check whether the SCPI application socket answers a minimal identity query.
+        """
+        try:
+            with socket.create_connection(
+                (self._host, self._port), timeout=APPLICATION_DETECT_TIMEOUT
+            ) as sock:
+                sock.settimeout(APPLICATION_DETECT_TIMEOUT)
+                sock.sendall(SCPI_IDENTITY_QUERY.encode("ascii"))
+                return bool(sock.recv(4096))
+        except OSError:
+            return False
 
     def enter_bootloader(self) -> None:
         """
@@ -104,11 +162,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
             # once the bootloader is entered, the existing connection will throw a timeout exception
             # which can be ignored.
             logger.debug("SCPI interface unavailable while in bootloader context")
-        time.sleep(120)
-        if self.get_state() == self.STATE_BOOTLOADER:
-            logger.info("Accessed bootloader context.")
-            return
-        raise SpektralwerkConnectionError(self._host, self.SPEKTRALWERK_BOOTLOADER_PORT)
+        self.wait_for_bootloader()
 
     def exit_bootloader(self) -> None:
         """
@@ -139,11 +193,9 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
             if response is not None and response.get("success"):
                 logger.info("Reboot command was successfully received.")
                 logger.info(
-                    "Rebooting to application context. Please be patient, this requires about %s seconds.",
-                    REBOOT_DURATION,
+                    "Rebooting to application context. Please be patient, this takes several seconds."
                 )
-                # rebooting and recovering to application context takes about 70 seconds.
-                time.sleep(REBOOT_DURATION)
+                self.wait_for_application()
                 break
             if attempt < MAX_RETRY_ATTEMPTS:
                 time.sleep(5)
@@ -153,7 +205,12 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
             else:
                 logger.error("Rebooting failed.")
 
-    def _send_to_bootloader(self, message: str) -> dict[str, typing.Any] | None:
+    def _send_to_bootloader(
+        self,
+        message: str,
+        timeout: float = BOOTLOADER_TIMEOUT,
+        log_errors: bool = True,
+    ) -> dict[str, typing.Any] | None:
         """
         Send a message to the bootloader context of the Spektralwerk
 
@@ -163,13 +220,14 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
         try:
             with socket.create_connection(
                 (self._host, self.SPEKTRALWERK_BOOTLOADER_PORT),
-                timeout=BOOTLOADER_TIMEOUT,
+                timeout=timeout,
             ) as sock:
                 sock.sendall(message.encode("utf8"))
                 try:
                     response = sock.recv(4096)
                 except TimeoutError:
-                    logger.exception("No response received.")
+                    if log_errors:
+                        logger.exception("No response received.")
                     return
                 else:
                     if response:
@@ -179,7 +237,10 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
         except TimeoutError:
             return {"success": False}
         except OSError:
-            logger.exception("TCP connection failed")
+            if log_errors:
+                logger.exception("TCP connection failed")
+            else:
+                logger.debug("TCP connection failed while polling bootloader")
             return {"success": False}
 
     def upload_firmware(self, firmware_blob: typing.BinaryIO) -> bool:
@@ -197,6 +258,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
             with socket.create_connection(
                 (self._host, self.SPEKTRALWERK_FIRMWARE_UPLOAD_PORT)
             ) as sock:
+                sock.settimeout(UPLOAD_RESPONSE_TIMEOUT)
                 sent = 0
                 while chunk := firmware_blob.read(self.FIRMWARE_CHUNK_SIZE):
                     sock.sendall(chunk)
@@ -204,11 +266,23 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
 
                     log_progress(sent, total_size)
 
-            logger.info("Upload complete")
-            time.sleep(70)
+                response = wait_for_upload_response(sock)
+                if response is not None:
+                    if response.get("success") is True:
+                        logger.info("Upload complete")
+                        return True
+                    logger.error("Firmware upload failed: %s", response)
+                    return False
 
-        except ConnectionRefusedError:
-            logger.exception("Cannot connect and upload firmware image.")
+            logger.info("Upload complete without bootloader status response")
+
+        except (ConnectionError, socket.timeout) as e:
+            # Catches Refused, Reset, Aborted, and network timeouts
+            logger.exception("Network error during firmware upload: %s", e)
+            return False
+        except OSError as e:
+            # Catches local fstat/read failures or unresolved host errors
+            logger.exception("Local file or system error: %s", e)
             return False
         else:
             return True
@@ -234,3 +308,29 @@ def log_progress(sent: int, total: int) -> None:
         sent,
         total,
     )
+
+
+def wait_for_upload_response(sock: socket.socket) -> dict[str, typing.Any] | None:
+    received_buffer = ""
+    while True:
+        try:
+            response = sock.recv(4096)
+        except TimeoutError:
+            return None
+
+        if not response:
+            return None
+
+        received_buffer += response.decode("utf-8", errors="replace")
+        while "\n" in received_buffer:
+            line, received_buffer = received_buffer.split("\n", 1)
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                status = json.loads(line)
+            except json.JSONDecodeError:
+                logger.warning("Ignoring invalid upload response: %s", line)
+                continue
+            if status.get("event") == "complete" or "success" in status:
+                return status

@@ -165,8 +165,10 @@ class SpektralwerkCore:
         """
         old_timeout = self.timeout
         self.timeout = timeout
-        yield
-        self.timeout = old_timeout
+        try:
+            yield
+        finally:
+            self.timeout = old_timeout
 
     def _request_stream(self, message: str, delimiter: bytes) -> typing.Generator[str]:
         _logger.debug("Stream Query sent: %s", message)
