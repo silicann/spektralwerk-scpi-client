@@ -7,7 +7,8 @@ variables:
 .default_scripts: &install_dependencies
   - apt-get update --yes
   - apt-get install pipx --yes
-  - PIPX_BIN_DIR=/usr/local/bin PIPX_HOME=/opt/pipx pipx install hatch
+  # fixed hatch version to enable reproducible builds upon version machines via `pylock.toml` file.
+  - PIPX_BIN_DIR=/usr/local/bin PIPX_HOME=/opt/pipx pipx install hatch==1.18.1
 
 stages:
   - test
@@ -28,17 +29,16 @@ test:unittest:
 
 security:sbom:
   stage: security
-  image: python:3.12-slim
   before_script:
     - *install_dependencies
   script:
+    # pip needs to be updated since it cause vulnerability issue
+    - hatch -e security run python -m ensurepip --upgrade
+    - hatch -e security run python -m pip install --upgrade "pip>=26.1.2"
     # Make sure the committed lock file is up to date
     - hatch -e security dep lock --check
     # Synchronize environment with pylock.toml
     - hatch -e security dep sync
-    # pip needs to be updated since it cause vulnerability issue
-    - hatch -e security run python -m ensurepip --upgrade
-    - hatch -e security run python -m pip install --upgrade "pip>=26.1.2"
     # Install SBOM generator into the Hatch environment
     - hatch run pip install cyclonedx-bom
     # Generate CycloneDX SBOM from actually installed packages
