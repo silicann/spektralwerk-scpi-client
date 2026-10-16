@@ -48,6 +48,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
     STATE_BOOTLOADER: typing.Literal["bootloader"] = "bootloader"
     STATE_APPLICATION: typing.Literal["application"] = "application"
 
+    BOOTLOADER_IPV4 = "192.168.0.83"
     SPEKTRALWERK_FIRMWARE_UPLOAD_PORT = 5300
     SPEKTRALWERK_BOOTLOADER_PORT = 5301
     FIRMWARE_CHUNK_SIZE = DEFAULT_CHUNK_SIZE
@@ -76,7 +77,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
 
         logger.info(
             "Bootloader context unavailable on %s:%s",
-            self._host,
+            self.BOOTLOADER_IPV4,
             self.SPEKTRALWERK_BOOTLOADER_PORT,
         )
         try:
@@ -110,7 +111,9 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
                 logger.info("Accessed bootloader context.")
                 return
             time.sleep(BOOTLOADER_POLL_INTERVAL)
-        raise SpektralwerkConnectionError(self._host, self.SPEKTRALWERK_BOOTLOADER_PORT)
+        raise SpektralwerkConnectionError(
+            self.BOOTLOADER_IPV4, self.SPEKTRALWERK_BOOTLOADER_PORT
+        )
 
     def wait_for_application(self, timeout: float = REBOOT_DURATION) -> None:
         """
@@ -218,7 +221,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
         """
         try:
             with socket.create_connection(
-                (self._host, self.SPEKTRALWERK_BOOTLOADER_PORT),
+                (self.BOOTLOADER_IPV4, self.SPEKTRALWERK_BOOTLOADER_PORT),
                 timeout=timeout,
             ) as sock:
                 sock.sendall(message.encode("utf8"))
@@ -256,7 +259,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
             total_size = os.fstat(firmware_blob.fileno()).st_size
 
             with socket.create_connection(
-                (self._host, self.SPEKTRALWERK_FIRMWARE_UPLOAD_PORT)
+                (self.BOOTLOADER_IPV4, self.SPEKTRALWERK_FIRMWARE_UPLOAD_PORT)
             ) as sock:
                 sock.settimeout(UPLOAD_RESPONSE_TIMEOUT)
                 sent = 0
