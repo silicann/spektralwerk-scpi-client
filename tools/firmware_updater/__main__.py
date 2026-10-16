@@ -18,19 +18,23 @@ class SpektralwerkAction(enum.Enum):
     FIRMWARE_VERSION = "get-firmware-version"
 
     def execute(self, spektralwerk: SpektralwerkCoreBootloader, args):
+        # enter and stay in bootloader context
         if self is self.ENTER_BOOTLOADER:
-            # enter bootloader context
             return SpektralwerkState.BOOTLOADER.switch_to_state(spektralwerk)
+
+        # enter application context
         if self is self.ENTER_APPLICATION:
-            # enter application context
             return SpektralwerkState.APPLICATION.switch_to_state(spektralwerk)
+
+        # upload new application
         if self is self.UPLOAD_APPLICATION:
-            # TODO: enter bootloader context and upload a file
             upload_file = args.upload_file
             if upload_file is None:
                 logger.error("Missing '--upload-file' argument for this action.")
                 return False
-            # switch to bootloader context
+            # switch to bootloader context to upload an application release
+            # in bootloader context, the Spektralwerk is only reachable via default IPv4 address
+            # 192.168.0.83.
             if not SpektralwerkState.BOOTLOADER.switch_to_state(spektralwerk):
                 logger.error(
                     "Failed to enter bootloader state before uploading firmware."
@@ -40,6 +44,8 @@ class SpektralwerkAction(enum.Enum):
                 return False
             spektralwerk.reboot_from_bootloader()
             return True
+
+        # get the current firmware version
         if self is self.FIRMWARE_VERSION:
             if not SpektralwerkState.APPLICATION.switch_to_state(spektralwerk):
                 logger.error(

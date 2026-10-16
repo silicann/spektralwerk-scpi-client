@@ -10,13 +10,10 @@ from spektralwerk_scpi_client.exceptions import (
     SpektralwerkConnectionError,
     SpektralwerkTimeoutError,
 )
-from spektralwerk_scpi_client.scpi.commands import (
-    SCPICommand as SCPI,  # noqa N814
-)
+from spektralwerk_scpi_client.scpi.commands import SCPICommand
 
 logger = logging.getLogger(__name__)
 
-VISA_TIMEOUT_CODE = "-1073807339"
 # Maximum time to wait for a bootloader command response during normal control requests.
 BOOTLOADER_TIMEOUT = 10
 # Short timeout used while polling for bootloader availability after a reset/context switch.
@@ -35,6 +32,8 @@ UPLOAD_RESPONSE_TIMEOUT = 30
 REBOOT_DURATION = 80
 MAX_RETRY_ATTEMPTS = 4
 
+DEFAULT_CHUNK_SIZE = 4096
+
 
 class SpektralwerkCoreBootloader(SpektralwerkCore):
     """
@@ -46,12 +45,12 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
     - perform factory reset
     """
 
-    STATE_BOOTLOADER = "bootloader"
-    STATE_APPLICATION = "application"
+    STATE_BOOTLOADER: typing.Literal["bootloader"] = "bootloader"
+    STATE_APPLICATION: typing.Literal["application"] = "application"
 
     SPEKTRALWERK_FIRMWARE_UPLOAD_PORT = 5300
     SPEKTRALWERK_BOOTLOADER_PORT = 5301
-    FIRMWARE_CHUNK_SIZE = 4096
+    FIRMWARE_CHUNK_SIZE = DEFAULT_CHUNK_SIZE
 
     BOOTLOADER_EXIT_MSG = '{"command": "bootloader-exit"}\n'
     BOOTLOADER_REBOOT_MSG = '{"command": "reboot"}\n'
@@ -138,7 +137,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
             ) as sock:
                 sock.settimeout(APPLICATION_DETECT_TIMEOUT)
                 sock.sendall(SCPI_IDENTITY_QUERY.encode("ascii"))
-                return bool(sock.recv(4096))
+                return bool(sock.recv(DEFAULT_CHUNK_SIZE))
         except OSError:
             return False
 
@@ -152,7 +151,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
         While in `bootloader` context, the SCPI interface is disabled and send messages will time
         out.
         """
-        message = SCPI.SYSTEM_ACTION_BOOTLOADER_ENTER_COMMAND
+        message = SCPICommand.SYSTEM_ACTION_BOOTLOADER_ENTER_COMMAND
         try:
             logger.info(
                 "Switching to bootloader. Please be patient, this takes several seconds"
@@ -215,7 +214,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
         Send a message to the bootloader context of the Spektralwerk
 
         Returns:
-
+            dict with at least a "success" key-value pair. The value is a boolean.
         """
         try:
             with socket.create_connection(
@@ -224,11 +223,11 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
             ) as sock:
                 sock.sendall(message.encode("utf8"))
                 try:
-                    response = sock.recv(4096)
+                    response = sock.recv(self.FIRMWARE_CHUNK_SIZE)
                 except TimeoutError:
                     if log_errors:
                         logger.exception("No response received.")
-                    return
+                    return None
                 else:
                     if response:
                         return json.loads(response.decode("utf-8", errors="replace"))
@@ -242,6 +241,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
             else:
                 logger.debug("TCP connection failed while polling bootloader")
             return {"success": False}
+        return None
 
     def upload_firmware(self, firmware_blob: typing.BinaryIO) -> bool:
         """
@@ -266,7 +266,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
 
                     log_progress(sent, total_size)
 
-                response = wait_for_upload_response(sock)
+                response = self.wait_for_upload_response(sock)
                 if response is not None:
                     if response.get("success") is True:
                         logger.info("Upload complete")
@@ -276,13 +276,13 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
 
             logger.info("Upload complete without bootloader status response")
 
-        except (ConnectionError, socket.timeout) as e:
+        except (ConnectionError, TimeoutError):
             # Catches Refused, Reset, Aborted, and network timeouts
-            logger.exception("Network error during firmware upload: %s", e)
+            logger.exception("Network error during firmware upload: %s")
             return False
-        except OSError as e:
+        except OSError:
             # Catches local fstat/read failures or unresolved host errors
-            logger.exception("Local file or system error: %s", e)
+            logger.exception("Local file or system error: %s")
             return False
         else:
             return True
@@ -290,47 +290,51 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
         finally:
             firmware_blob.close()
 
+    def wait_for_upload_response(
+        self, sock: socket.socket
+    ) -> dict[str, typing.Any] | None:
+        received_buffer = ""
+        while True:
+            try:
+                response = sock.recv(self.FIRMWARE_CHUNK_SIZE)
+            except TimeoutError:
+                return None
+
+            if not response:
+                return None
+
+            received_buffer += response.decode("utf-8", errors="replace")
+            while "\n" in received_buffer:
+                line, received_buffer = received_buffer.split("\n", 1)
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    status = json.loads(line)
+                except json.JSONDecodeError:
+                    logger.warning("Ignoring invalid upload response: %s", line)
+                    continue
+                if status.get("event") == "complete" or "success" in status:
+                    return status
+
 
 PROGRESS_LOG_STEP = 5
+_last_progress = -1
 
 
 def log_progress(sent: int, total: int) -> None:
+    global _last_progress
+
     percent = 100.0 if total == 0 else min(sent / total * 100, 100.0)
     progress = int(percent // PROGRESS_LOG_STEP) * PROGRESS_LOG_STEP
 
-    if sent < total and progress <= getattr(log_progress, "last_progress", -1):
+    if sent < total and progress <= _last_progress:
         return
 
-    log_progress.last_progress = progress
+    _last_progress = progress
     logger.info(
         "Firmware upload progress: %.1f%% (%d/%d bytes)",
         percent,
         sent,
         total,
     )
-
-
-def wait_for_upload_response(sock: socket.socket) -> dict[str, typing.Any] | None:
-    received_buffer = ""
-    while True:
-        try:
-            response = sock.recv(4096)
-        except TimeoutError:
-            return None
-
-        if not response:
-            return None
-
-        received_buffer += response.decode("utf-8", errors="replace")
-        while "\n" in received_buffer:
-            line, received_buffer = received_buffer.split("\n", 1)
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                status = json.loads(line)
-            except json.JSONDecodeError:
-                logger.warning("Ignoring invalid upload response: %s", line)
-                continue
-            if status.get("event") == "complete" or "success" in status:
-                return status
