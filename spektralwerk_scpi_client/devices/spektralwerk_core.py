@@ -865,8 +865,8 @@ class SpektralwerkCore:
             a tuple containing the start and end delay
         """
         delay_queries = [
-            SCPI.CONTROL_OUTPUT_DELAY_START_QUERY,
-            SCPI.CONTROL_OUTPUT_DELAY_END_QUERY,
+            SCPI.CONTROL_OUTPUT_TIMING_LEAD_QUERY,
+            SCPI.CONTROL_OUTPUT_TIMING_LAG_QUERY,
         ]
         delay_message = ";".join(delay_queries)
         [start_delay, end_delay] = self._request_with_error_check(
@@ -889,11 +889,11 @@ class SpektralwerkCore:
         messages = []
         if start_delay is not None:
             messages.append(
-                SCPI.CONTROL_OUTPUT_DELAY_START_COMMAND.with_arguments(start_delay)
+                SCPI.CONTROL_OUTPUT_TIMING_LEAD_COMMAND.with_arguments(start_delay)
             )
         if end_delay is not None:
             messages.append(
-                SCPI.CONTROL_OUTPUT_DELAY_END_COMMAND.with_arguments(end_delay)
+                SCPI.CONTROL_OUTPUT_TIMING_LAG_COMMAND.with_arguments(end_delay)
             )
         message = ";".join(messages)
         self._request_with_error_check(message=message)

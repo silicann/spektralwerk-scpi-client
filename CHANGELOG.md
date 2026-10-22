@@ -2,8 +2,15 @@
 
 All notable changes of the `spektralwerk_scpi_client` will be documented in this file
 
+## [Unreleased] -
 
-## [Unreleased]
+### Changed
+
+- Adopt SCPI command change for oputput timing
+  - `control:output:delay:end` -> `control:output:timing:lag`
+  - `control:output:delay:start` -> `control:output:timing:lead`
+
+## [0.6.0] - 2026-10-13
 
 ### Added
 
