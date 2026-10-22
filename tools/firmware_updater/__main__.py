@@ -36,9 +36,7 @@ class SpektralwerkAction(enum.Enum):
             # in bootloader context, the Spektralwerk is only reachable via default IPv4 address
             # 192.168.0.83.
             if not SpektralwerkState.BOOTLOADER.switch_to_state(spektralwerk):
-                logger.error(
-                    "Failed to enter bootloader state before uploading firmware."
-                )
+                logger.error("Failed to enter bootloader state before uploading firmware.")
                 return False
             if not spektralwerk.upload_firmware(upload_file):
                 return False
@@ -48,14 +46,11 @@ class SpektralwerkAction(enum.Enum):
         # get the current firmware version
         if self is self.FIRMWARE_VERSION:
             if not SpektralwerkState.APPLICATION.switch_to_state(spektralwerk):
-                logger.error(
-                    "Failed to enter application context before requesting the firmware version."
-                )
+                logger.error("Failed to enter application context before requesting the firmware version.")
                 return False
-            logger.info(
-                "Current firmware version: %s", spektralwerk.get_firmware_version()
-            )
+            logger.info("Current firmware version: %s", spektralwerk.get_firmware_version())
             return True
+
         error_msg = f"Missing implementation for action: {self}"
         raise NotImplementedError(error_msg)
 

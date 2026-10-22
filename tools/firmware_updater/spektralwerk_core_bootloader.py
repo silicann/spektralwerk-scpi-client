@@ -28,6 +28,8 @@ APPLICATION_DETECT_TIMEOUT = 1
 SCPI_IDENTITY_QUERY = "*IDN?\n"
 # Maximum time to wait for an optional upload result from legacy-compatible bootloaders.
 UPLOAD_RESPONSE_TIMEOUT = 30
+# Maximum time to wait for the bootloader network interface after a context switch.
+BOOTLOADER_STARTUP_DURATION = 120
 # Maximum time to wait for the application to become reachable after a bootloader reboot.
 REBOOT_DURATION = 80
 MAX_RETRY_ATTEMPTS = 4
@@ -95,12 +97,18 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
             return None
         return self.STATE_APPLICATION
 
-    def wait_for_bootloader(self, timeout: float = 120) -> None:
+    def wait_for_bootloader(self, timeout: float = BOOTLOADER_STARTUP_DURATION) -> None:
         """
         Wait until the bootloader control interface responds.
         The device can reset quickly or slowly depending on network state.
         """
         deadline = time.monotonic() + timeout
+        logger.info(
+            "Waiting up to %s seconds for bootloader on %s:%s",
+            timeout,
+            self.BOOTLOADER_IPV4,
+            self.SPEKTRALWERK_BOOTLOADER_PORT,
+        )
         while time.monotonic() < deadline:
             response = self._send_to_bootloader(
                 self.BOOTLOADER_HELP_MSG,
@@ -110,10 +118,8 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
             if response is not None and response.get("success") is True:
                 logger.info("Accessed bootloader context.")
                 return
-            time.sleep(BOOTLOADER_POLL_INTERVAL)
-        raise SpektralwerkConnectionError(
-            self.BOOTLOADER_IPV4, self.SPEKTRALWERK_BOOTLOADER_PORT
-        )
+            time.sleep(BOOTLOADER_POLL_INTERVAL * 5)
+        raise SpektralwerkConnectionError(self.BOOTLOADER_IPV4, self.SPEKTRALWERK_BOOTLOADER_PORT)
 
     def wait_for_application(self, timeout: float = REBOOT_DURATION) -> None:
         """
@@ -135,9 +141,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
         Check whether the SCPI application socket answers a minimal identity query.
         """
         try:
-            with socket.create_connection(
-                (self._host, self._port), timeout=APPLICATION_DETECT_TIMEOUT
-            ) as sock:
+            with socket.create_connection((self._host, self._port), timeout=APPLICATION_DETECT_TIMEOUT) as sock:
                 sock.settimeout(APPLICATION_DETECT_TIMEOUT)
                 sock.sendall(SCPI_IDENTITY_QUERY.encode("ascii"))
                 return bool(sock.recv(DEFAULT_CHUNK_SIZE))
@@ -156,9 +160,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
         """
         message = SCPICommand.SYSTEM_ACTION_BOOTLOADER_ENTER_COMMAND
         try:
-            logger.info(
-                "Switching to bootloader. Please be patient, this takes several seconds"
-            )
+            logger.info("Switching to bootloader. Please be patient, this takes several seconds")
             self._request_without_error_check(message=message)
         except (SpektralwerkTimeoutError, SpektralwerkConnectionError):
             # once the bootloader is entered, the existing connection will throw a timeout exception
@@ -173,9 +175,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
         for attempt in range(1, 5):
             response = self._send_to_bootloader(self.BOOTLOADER_EXIT_MSG)
             if response is not None and response.get("success"):
-                logger.debug(
-                    "Leaving bootloader context and switch to application context."
-                )
+                logger.debug("Leaving bootloader context and switch to application context.")
                 time.sleep(60)
                 return
             if attempt < MAX_RETRY_ATTEMPTS:
@@ -194,16 +194,12 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
             response = self._send_to_bootloader(self.BOOTLOADER_REBOOT_MSG)
             if response is not None and response.get("success"):
                 logger.info("Reboot command was successfully received.")
-                logger.info(
-                    "Rebooting to application context. Please be patient, this takes several seconds."
-                )
+                logger.info("Rebooting to application context. Please be patient, this takes several seconds.")
                 self.wait_for_application()
                 break
             if attempt < MAX_RETRY_ATTEMPTS:
                 time.sleep(5)
-                logger.warning(
-                    "Rebooting from bootloader context failed. Retry: %s.", attempt
-                )
+                logger.warning("Rebooting from bootloader context failed. Retry: %s.", attempt)
             else:
                 logger.error("Rebooting failed.")
 
@@ -236,13 +232,16 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
                         return json.loads(response.decode("utf-8", errors="replace"))
                     logger.error("Error: connection closed without response")
 
-        except TimeoutError:
-            return {"success": False}
-        except OSError:
+        except OSError as exc:
             if log_errors:
-                logger.exception("TCP connection failed")
+                logger.exception("TCP connection to bootloader failed")
             else:
-                logger.debug("TCP connection failed while polling bootloader")
+                logger.debug(
+                    "TCP connection to bootloader at %s:%s failed: %s",
+                    self.BOOTLOADER_IPV4,
+                    self.SPEKTRALWERK_BOOTLOADER_PORT,
+                    exc,
+                )
             return {"success": False}
         return None
 
@@ -258,9 +257,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
             firmware_blob.seek(0)
             total_size = os.fstat(firmware_blob.fileno()).st_size
 
-            with socket.create_connection(
-                (self.BOOTLOADER_IPV4, self.SPEKTRALWERK_FIRMWARE_UPLOAD_PORT)
-            ) as sock:
+            with socket.create_connection((self.BOOTLOADER_IPV4, self.SPEKTRALWERK_FIRMWARE_UPLOAD_PORT)) as sock:
                 sock.settimeout(UPLOAD_RESPONSE_TIMEOUT)
                 sent = 0
                 while chunk := firmware_blob.read(self.FIRMWARE_CHUNK_SIZE):
@@ -293,9 +290,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
         finally:
             firmware_blob.close()
 
-    def wait_for_upload_response(
-        self, sock: socket.socket
-    ) -> dict[str, typing.Any] | None:
+    def wait_for_upload_response(self, sock: socket.socket) -> dict[str, typing.Any] | None:
         received_buffer = ""
         while True:
             try:

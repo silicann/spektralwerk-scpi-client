@@ -61,14 +61,18 @@ class SpektralwerkState(enum.Enum):
 
         for attempt in range(1, 5):
             try:
-                self._switch_state_incrementally(
-                    current_state, wanted_state, spektralwerk
-                )
+                self._switch_state_incrementally(current_state, wanted_state, spektralwerk)
             except SpektralwerkConnectionError as exc:
                 raise SpektralwerkConnectionError(
                     spektralwerk._host,  # noqa SLF001
                     spektralwerk._port,  # noqa SLF001
                 ) from exc
+            # enter_bootloader() already waits for a successful bootloader response.
+            # An immediate second connection can fail while the device is settling.
+            if original_state is self.APPLICATION and wanted_state is self.BOOTLOADER:
+                logger.info("Switched from state %s to %s", original_state, wanted_state)
+                return True
+
             current_state = self.get_current_state(spektralwerk)
 
             if current_state is wanted_state:
@@ -90,9 +94,7 @@ class SpektralwerkState(enum.Enum):
         target_state: "SpektralwerkState",
         spektralwerk: SpektralwerkCoreBootloader,
     ):
-        logger.debug(
-            "Trying to switch state from '%s' to '%s'", current_state, target_state
-        )
+        logger.debug("Trying to switch state from '%s' to '%s'", current_state, target_state)
         if current_state is cls.APPLICATION:
             if target_state is cls.BOOTLOADER:
                 # switch from application state to bootloader state
