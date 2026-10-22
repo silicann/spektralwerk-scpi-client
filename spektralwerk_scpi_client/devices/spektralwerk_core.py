@@ -17,7 +17,7 @@ from spektralwerk_scpi_client.exceptions import (
 )
 from spektralwerk_scpi_client.scpi import SCPIErrorMessage
 from spektralwerk_scpi_client.scpi.commands import (
-    SCPICommand as SCPI,  # noqa N814
+    SCPICommand as SCPI,
 )
 from spektralwerk_scpi_client.scpi.mnemonics import (
     OutputFormat,
@@ -172,6 +172,7 @@ class SpektralwerkCore:
 
     def _request_stream(self, message: str, delimiter: bytes) -> typing.Generator[str]:
         _logger.debug("Stream Query sent: %s", message)
+        message = f"{message};{SCPI.ESR_QUERY}"
         with self.get_session() as session:
             session.write(message)  # type: ignore[attr-defined]
             with session.read_termination_context(delimiter):  # type: ignore[attr-defined]

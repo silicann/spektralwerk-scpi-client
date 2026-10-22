@@ -9,6 +9,7 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 - Adopt SCPI command change for oputput timing
   - `control:output:delay:end` -> `control:output:timing:lag`
   - `control:output:delay:start` -> `control:output:timing:lead`
+- Append `*ESR?` query for request of spectra stream. Yhis ensures the appropriate terminator for the streamed spectra.
 
 ## [0.6.0] - 2026-10-13
 
