@@ -13,9 +13,7 @@ from spektralwerk_scpi_client.scpi.mnemonics import (
 )
 
 
-def decoded_spectrum(
-    raw_spectrum: str | bytes, output_format: OutputFormat | None = OutputFormat.HUMAN
-) -> Spectrum:
+def decoded_spectrum(raw_spectrum: str | bytes, output_format: OutputFormat | None = OutputFormat.HUMAN) -> Spectrum:
     """
     Decode an incoming raw spectrum depending on the encoding
 
@@ -39,27 +37,21 @@ def decoded_spectrum(
             )
         case OutputFormat.BASE64_FLOAT:
             decoded_spectrum = base64.b64decode(raw_spectrum)
-            [timestamp_usec, *spectral_data] = _unpack_spectrum(
-                decoded_spectrum, BASE64_FLOAT_FORMAT
-            )  # type: float, list[float]
+            [timestamp_usec, *spectral_data] = _unpack_spectrum(decoded_spectrum, BASE64_FLOAT_FORMAT)  # type: float, list[float]
             return Spectrum(
                 float(timestamp_usec / 1_000_000),
                 [float(value) for value in spectral_data],
             )
         case OutputFormat.BASE64_INT16:
             decoded_spectrum = base64.b64decode(raw_spectrum)
-            [timestamp_usec, *spectral_data] = _unpack_spectrum(
-                decoded_spectrum, BASE64_INT16_FORMAT
-            )
+            [timestamp_usec, *spectral_data] = _unpack_spectrum(decoded_spectrum, BASE64_INT16_FORMAT)
             return Spectrum(
                 float(timestamp_usec / 1_000_000),
                 [float(value) for value in spectral_data],
             )
         case OutputFormat.COBS_INT16:
             decoded_spectrum = cobs.cobs.decode(raw_spectrum)
-            [timestamp_usec, *spectral_data] = _unpack_spectrum(
-                decoded_spectrum, COBS_INT16_FORMAT
-            )
+            [timestamp_usec, *spectral_data] = _unpack_spectrum(decoded_spectrum, COBS_INT16_FORMAT)
             return Spectrum(
                 float(timestamp_usec / 1_000_000),
                 [float(value) for value in spectral_data],
@@ -67,8 +59,6 @@ def decoded_spectrum(
 
 
 def _unpack_spectrum(byte_spectrum: bytes, fmt: Format) -> tuple[float]:
-    pixel_count = (
-        len(byte_spectrum) - struct.calcsize(fmt.timestamp_format)
-    ) // struct.calcsize(fmt.pixel_format)
+    pixel_count = (len(byte_spectrum) - struct.calcsize(fmt.timestamp_format)) // struct.calcsize(fmt.pixel_format)
     unpack_format = f"<{fmt.timestamp_format}{pixel_count}{fmt.pixel_format}"
     return struct.unpack(unpack_format, byte_spectrum)

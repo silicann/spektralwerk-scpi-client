@@ -7,14 +7,14 @@ variables:
 .default_scripts: &install_dependencies
   - apt-get update --yes
   - apt-get install pipx --yes
-  # fixed hatch version to enable reproducible builds upon version machines via `pylock.toml` file.
-  - PIPX_BIN_DIR=/usr/local/bin PIPX_HOME=/opt/pipx pipx install hatch==1.18.1
+  # Pin Hatch so CI uses the same environment-management behavior.
+  - PIPX_BIN_DIR=/usr/local/bin PIPX_HOME=/opt/pipx pipx install hatch
 
 stages:
   - test
-  - security
   - style
   - build
+  - security
 
 test:unittest:
   stage: test
@@ -25,63 +25,6 @@ test:unittest:
   rules:
     - if: '$CI_PIPELINE_SOURCE != "schedule"'
       when: always
-
-
-security:sbom:
-  stage: security
-  before_script:
-    - *install_dependencies
-  script:
-    # pip needs to be updated since it cause vulnerability issue
-    - hatch -e security run python -m ensurepip --upgrade
-    - hatch -e security run python -m pip install --upgrade "pip>=26.1.2"
-    # Make sure the committed lock file is up to date
-    - hatch -e security dep lock --check
-    # Synchronize environment with pylock.toml
-    - hatch -e security dep sync
-    # Install SBOM generator into the Hatch environment
-    - hatch run pip install cyclonedx-bom
-    # Generate CycloneDX SBOM from actually installed packages
-    - hatch run cyclonedx-py environment --output-format JSON --output-file sbom.cdx.json
-  artifacts:
-    paths:
-      - sbom.cdx.json
-
-security:pip-audit:
-  stage: security
-  before_script:
-    - *install_dependencies
-  script:
-    - hatch -e security run pip-audit --format cyclonedx-json --output audit.cdx.json
-  artifacts:
-    when: always
-    expire_in: 1 week
-    paths:
-      - audit.cdx.json
-
-security:cve-scan:
-  stage: security
-  needs:
-    - job: security:sbom
-      artifacts: true
-  before_script:
-    - *install_dependencies
-    # pip needs to be updated since it cause vulnerability issue
-    - hatch -e security run python -m ensurepip --upgrade
-    - hatch -e security run python -m pip install --upgrade "pip>=26.1.2"
-  script:
-    - |
-      hatch -e security run cve-bin-tool \
-        --disable-data-source GAD \
-        --sbom cyclonedx \
-        --sbom-file sbom.cdx.json \
-        --format json \
-        --output-file cve-report.json
-  artifacts:
-    when: always
-    paths:
-      - sbom.cdx.json
-      - cve-report.json
 
 style:typing:
   stage: style
@@ -120,6 +63,67 @@ build:whl:
     - *install_dependencies
   script:
     - hatch build
-  rules:
-    - if: '$CI_PIPELINE_SOURCE != "schedule"'
-      when: always
+  artifacts:
+    paths:
+      - dist/*.whl
+      - dist/*.tar.gz
+
+# Build a CycloneDX 1.6 SBOM for the distributable wheel produced by build:whl.
+# Install that wheel and its runtime dependencies into a fresh virtual environment
+# so the inventory excludes CI and SBOM-generation tools. Validate the resulting
+# document, then retain it with SHA-256 hashes of the SBOM and wheel as artifacts.
+# This inventory covers Python packages in this CI environment, not device firmware
+# or operating-system packages.
+security:sbom:
+  stage: security
+  needs:
+    - job: build:whl
+      artifacts: true
+  before_script:
+    - *install_dependencies
+    - apt-get install --yes python3-venv
+    - PIPX_BIN_DIR=/usr/local/bin PIPX_HOME=/opt/pipx pipx install cyclonedx-bom==7.1.0
+    - PIPX_BIN_DIR=/usr/local/bin PIPX_HOME=/opt/pipx pipx install "uv>=0.13.4"
+  script:
+    - uv venv --python python3 .sbom-venv
+    - uv pip install --python .sbom-venv/bin/python dist/*.whl
+    - cyclonedx-py environment --pyproject pyproject.toml --mc-type library --spec-version 1.6 --output-format JSON --output-file sbom.cdx.json .sbom-venv/bin/python
+    - sha256sum dist/*.whl sbom.cdx.json > sbom.sha256
+  artifacts:
+    when: always
+    expire_in: 1 year
+    paths:
+      - sbom.cdx.json
+      - sbom.sha256
+
+security:pip-audit:
+  stage: security
+  before_script:
+    - *install_dependencies
+  script:
+    - hatch -e security run pip-audit --format json --output audit.json
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - audit.json
+
+security:cve-scan:
+  stage: security
+  needs:
+    - job: security:sbom
+      artifacts: true
+  before_script:
+    - *install_dependencies
+  script:
+    - |
+      hatch -e security run cve-bin-tool \
+        --disable-data-source GAD \
+        --sbom cyclonedx \
+        --sbom-file sbom.cdx.json \
+        --format json \
+        --output-file cve-report.json
+  artifacts:
+    when: always
+    paths:
+      - cve-report.json

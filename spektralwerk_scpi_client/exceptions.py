@@ -33,10 +33,7 @@ class SpektralwerkResponseError(SpektralwerkError):
     def __init__(self, command, scpi_error: SCPIErrorMessage):
         self.scpi_error_code = scpi_error.code
         self.scpi_error_message = scpi_error.message
-        super().__init__(
-            f"The command '{command}' lead to '{self.scpi_error_code}'"
-            f" - '{self.scpi_error_message}'."
-        )
+        super().__init__(f"The command '{command}' lead to '{self.scpi_error_code}' - '{self.scpi_error_message}'.")
 
 
 class SpektralwerkUnexpectedResponseError(SpektralwerkError):
