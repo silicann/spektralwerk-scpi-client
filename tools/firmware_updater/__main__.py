@@ -1,6 +1,7 @@
 import argparse
 import enum
 import logging
+import time
 
 from spektralwerk_scpi_client.exceptions import SpektralwerkConnectionError
 from tools.firmware_updater.device_state import SpektralwerkState
@@ -16,6 +17,7 @@ class SpektralwerkAction(enum.Enum):
     ENTER_APPLICATION = "enter-application"
     UPLOAD_APPLICATION = "upload-application"
     FIRMWARE_VERSION = "get-firmware-version"
+    EMERGENCY_RESET = "reset-lost-device"
 
     def execute(self, spektralwerk: SpektralwerkCoreBootloader, args):
         # enter and stay in bootloader context
@@ -51,6 +53,26 @@ class SpektralwerkAction(enum.Enum):
             logger.info("Current firmware version: %s", spektralwerk.get_firmware_version())
             return True
 
+        # resets a lost Spektralwerk to factory settings
+        if self is self.EMERGENCY_RESET:
+            logger.info(
+                "Waiting 30 seconds for bootloader at %s. Ensure this host can access "
+                "192.168.0.0/24, then disconnect and reconnect the device power (PoE).",
+                spektralwerk.BOOTLOADER_IPV4,
+            )
+            deadline = time.monotonic() + 30
+            while time.monotonic() < deadline:
+                response = spektralwerk._send_to_bootloader(
+                    spektralwerk.BOOTLOADER_HELP_MSG,
+                    timeout=0.5,
+                    log_errors=False,
+                )
+                if response is not None and response.get("success") is True:
+                    logger.info("Bootloader reached; resetting to factory settings.")
+                    return spektralwerk.reset_to_factory_settings()
+                time.sleep(min(0.5, max(0, deadline - time.monotonic())))
+            logger.error("Bootloader was not reachable within 30 seconds.")
+            return False
         error_msg = f"Missing implementation for action: {self}"
         raise NotImplementedError(error_msg)
 

@@ -58,6 +58,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
     BOOTLOADER_EXIT_MSG = '{"command": "bootloader-exit"}\n'
     BOOTLOADER_REBOOT_MSG = '{"command": "reboot"}\n'
     BOOTLOADER_HELP_MSG = '{"command": "help"}\n'
+    BOOTLOADER_FACTORY_RESET_MSG = '{"command": "factory-reset"}\n'
 
     def get_state(self) -> typing.Literal["application", "bootloader"] | None:
         """
@@ -289,6 +290,22 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
 
         finally:
             firmware_blob.close()
+
+    def reset_to_factory_settings(self) -> bool:
+        """
+        Reset the Spektralwerk to it's default factory settings.
+
+        The factory resets all user and network settings and configurations to their default values.
+
+        Returns:
+            boolean value indicating the success of the factory reset
+        """
+
+        if self.get_state() == "application":
+            self.enter_bootloader()
+        response = self._send_to_bootloader(message=self.BOOTLOADER_FACTORY_RESET_MSG)
+
+        return bool(response is not None and response.get("success") is True)
 
     def wait_for_upload_response(self, sock: socket.socket) -> dict[str, typing.Any] | None:
         received_buffer = ""

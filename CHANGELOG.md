@@ -4,6 +4,10 @@ All notable changes of the `spektralwerk_scpi_client` will be documented in this
 
 ## [Unreleased] -
 
+### Added
+
+- Factory reset option for "lost" Spektralwerk devices. A "lost" Spektralwerk device is a Spektralwerk which cannot be accessed any more since the network configuration are unknown or got lost in the past. It will clear all user settings (including any network configuration).
+
 ### Changed
 
 - Adopt SCPI command change for oputput timing
