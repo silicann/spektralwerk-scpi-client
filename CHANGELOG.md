@@ -2,7 +2,7 @@
 
 All notable changes of the `spektralwerk_scpi_client` will be documented in this file
 
-## [Unreleased] -
+## [0.7.0] -  2026-11-06
 
 ### Added
 
