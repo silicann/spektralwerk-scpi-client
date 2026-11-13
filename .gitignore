@@ -6,3 +6,7 @@ build/
 # style checks, etc.
 .coverage*
 .cache/
+
+# sbom and audit files
+sbom*
+audit*.json

@@ -60,15 +60,11 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
     BOOTLOADER_HELP_MSG = '{"command": "help"}\n'
     BOOTLOADER_FACTORY_RESET_MSG = '{"command": "factory-reset"}\n'
 
-    def is_bootloader_available(
-        self, timeout: float = BOOTLOADER_DETECT_TIMEOUT
-    ) -> bool:
+    def is_bootloader_available(self, timeout: float = BOOTLOADER_DETECT_TIMEOUT) -> bool:
         """
         Check whether the bootloader control interface responds.
         """
-        response = self._send_to_bootloader(
-            self.BOOTLOADER_HELP_MSG, timeout=timeout, log_errors=False
-        )
+        response = self._send_to_bootloader(self.BOOTLOADER_HELP_MSG, timeout=timeout, log_errors=False)
         return response is not None and response.get("success") is True
 
     def get_state(self) -> typing.Literal["application", "bootloader"] | None:
@@ -125,9 +121,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
                 logger.info("Accessed bootloader context.")
                 return
             time.sleep(BOOTLOADER_POLL_INTERVAL * 5)
-        raise SpektralwerkConnectionError(
-            self.BOOTLOADER_IPV4, self.SPEKTRALWERK_BOOTLOADER_PORT
-        )
+        raise SpektralwerkConnectionError(self.BOOTLOADER_IPV4, self.SPEKTRALWERK_BOOTLOADER_PORT)
 
     def wait_for_application(self, timeout: float = REBOOT_DURATION) -> None:
         """
@@ -149,9 +143,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
         Check whether the SCPI application socket answers a minimal identity query.
         """
         try:
-            with socket.create_connection(
-                (self._host, self._port), timeout=APPLICATION_DETECT_TIMEOUT
-            ) as sock:
+            with socket.create_connection((self._host, self._port), timeout=APPLICATION_DETECT_TIMEOUT) as sock:
                 sock.settimeout(APPLICATION_DETECT_TIMEOUT)
                 sock.sendall(SCPI_IDENTITY_QUERY.encode("ascii"))
                 return bool(sock.recv(DEFAULT_CHUNK_SIZE))
@@ -170,9 +162,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
         """
         message = SCPICommand.SYSTEM_ACTION_BOOTLOADER_ENTER_COMMAND
         try:
-            logger.info(
-                "Switching to bootloader. Please be patient, this takes several seconds"
-            )
+            logger.info("Switching to bootloader. Please be patient, this takes several seconds")
             self._request_without_error_check(message=message)
         except (SpektralwerkTimeoutError, SpektralwerkConnectionError):
             # once the bootloader is entered, the existing connection will throw a timeout exception
@@ -187,9 +177,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
         for attempt in range(1, 5):
             response = self._send_to_bootloader(self.BOOTLOADER_EXIT_MSG)
             if response is not None and response.get("success"):
-                logger.debug(
-                    "Leaving bootloader context and switch to application context."
-                )
+                logger.debug("Leaving bootloader context and switch to application context.")
                 time.sleep(60)
                 return
             if attempt < MAX_RETRY_ATTEMPTS:
@@ -208,16 +196,12 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
             response = self._send_to_bootloader(self.BOOTLOADER_REBOOT_MSG)
             if response is not None and response.get("success"):
                 logger.info("Reboot command was successfully received.")
-                logger.info(
-                    "Rebooting to application context. Please be patient, this takes several seconds."
-                )
+                logger.info("Rebooting to application context. Please be patient, this takes several seconds.")
                 self.wait_for_application()
                 break
             if attempt < MAX_RETRY_ATTEMPTS:
                 time.sleep(5)
-                logger.warning(
-                    "Rebooting from bootloader context failed. Retry: %s.", attempt
-                )
+                logger.warning("Rebooting from bootloader context failed. Retry: %s.", attempt)
             else:
                 logger.error("Rebooting failed.")
 
@@ -276,9 +260,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
             firmware_blob.seek(0)
             total_size = os.fstat(firmware_blob.fileno()).st_size
 
-            with socket.create_connection(
-                (self.BOOTLOADER_IPV4, self.SPEKTRALWERK_FIRMWARE_UPLOAD_PORT)
-            ) as sock:
+            with socket.create_connection((self.BOOTLOADER_IPV4, self.SPEKTRALWERK_FIRMWARE_UPLOAD_PORT)) as sock:
                 sock.settimeout(UPLOAD_RESPONSE_TIMEOUT)
                 sent = 0
                 last_progress = -1
@@ -328,9 +310,7 @@ class SpektralwerkCoreBootloader(SpektralwerkCore):
 
         return bool(response is not None and response.get("success") is True)
 
-    def wait_for_upload_response(
-        self, sock: socket.socket
-    ) -> dict[str, typing.Any] | None:
+    def wait_for_upload_response(self, sock: socket.socket) -> dict[str, typing.Any] | None:
         received_buffer = ""
         while True:
             try:
