@@ -2,6 +2,12 @@
 
 All notable changes of the `spektralwerk_scpi_client` will be documented in this file
 
+## [0.7.1] - 2026-11-06
+
+### Changed
+
+- Github action releases were  updated to be compatible with the current runner setup.
+
 ## [0.7.0] -  2026-11-06
 
 ### Added
